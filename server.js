@@ -623,7 +623,41 @@ function sendTelegramMessage(message) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Content-Length": data.length,
+        "Content-Length": Buffer.byteLength(data), // Use Buffer.byteLength for correct length
+      },
+    };
+
+    const req = https.request(options, (res) => {
+      let body = "";
+      res.on("data", (chunk) => (body += chunk));
+      res.on("end", () => resolve(JSON.parse(body)));
+    });
+
+    req.on("error", reject);
+    req.write(data);
+    req.end();
+  });
+}
+
+function sendTelegramMessageWithButtons(message, buttons) {
+  return new Promise((resolve, reject) => {
+    const data = JSON.stringify({
+      chat_id: ADMIN_ID,
+      text: message,
+      parse_mode: "Markdown",
+      disable_notification: false,
+      reply_markup: {
+        inline_keyboard: buttons
+      }
+    });
+
+    const options = {
+      hostname: "api.telegram.org",
+      path: `/bot${BOT_TOKEN}/sendMessage`,
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Content-Length": Buffer.byteLength(data),
       },
     };
 
@@ -4966,8 +5000,24 @@ app.post("/add-money", requireAuth, async (req, res) => {
 
   const request = await createDepositRequest({ customerId: req.session.customerId, customerName: customer.name, customerEmail: customer.email, currency: customer.currency, amount, paymentMethod });
   const currencyConfig = CURRENCIES[customer.currency];
-  const message = `💰 *NEW DEPOSIT REQUEST*\n━━━━━━━━━━━━━━━━━━━━━━━━━\n🔖 Request ID: \`${request.requestId}\`\n👤 Customer: ${customer.name}\n📧 Email: ${customer.email}\n💵 Amount: ${formatCurrency(amount, customer.currency)}\n💳 Method: ${currencyConfig.paymentMethodNames[paymentMethod]}\n━━━━━━━━━━━━━━━━━━━━━━━━━\n⏳ *Action Required:* Send payment details`;
-  try { await sendTelegramMessage(message); } catch (e) { console.error("Telegram error:", e); }
+  const message = `💰 *NEW DEPOSIT REQUEST*
+━━━━━━━━━━━━━━━━━━━━━━━━━
+🔖 Request ID: \`${request.requestId}\`
+👤 Customer: ${customer.name}
+📧 Email: ${customer.email}
+💵 Amount: ${formatCurrency(amount, customer.currency)}
+💳 Method: ${currencyConfig.paymentMethodNames[paymentMethod]}
+━━━━━━━━━━━━━━━━━━━━━━━━━
+⏳ *Action Required*`;
+
+  const buttons = [
+    [
+      { text: "💳 Send Payment Details", callback_data: `deposit_details_${request.requestId}` },
+      { text: "❌ Reject", callback_data: `deposit_reject_${request.requestId}` }
+    ]
+  ];
+
+  try { await sendTelegramMessageWithButtons(message, buttons); } catch (e) { console.error("Telegram error:", e); }
   res.redirect(`/add-money/waiting/${request.requestId}`);
 });
 
@@ -5127,8 +5177,26 @@ app.post("/withdraw", requireAuth, async (req, res) => {
   else if (customer.currency === "GBP") { accountDetails += `\nAccount: ${withdrawalAccount.accountNumber}\nSort Code: ${withdrawalAccount.sortCode}`; }
   else { accountDetails += `\nAccount: ${withdrawalAccount.accountNumber}\nRouting: ${withdrawalAccount.routingNumber}`; }
 
-  const message = `💸 *NEW WITHDRAWAL REQUEST*\n━━━━━━━━━━━━━━━━━━━━━━━━━\n🔖 Request ID: \`${request.requestId}\`\n👤 Customer: ${customer.name}\n💰 Balance: ${formatCurrency(customer.balance, customer.currency)}\n💵 Amount: ${formatCurrency(amount, customer.currency)}\n━━━━━━━━━━━━━━━━━━━━━━━━━\n📤 *Sending To:*\n${accountDetails}\n━━━━━━━━━━━━━━━━━━━━━━━━━\n⏳ *Action Required:* Approve or reject`;
-  try { await sendTelegramMessage(message); } catch (e) { console.error("Telegram error:", e); }
+  const message = `💸 *NEW WITHDRAWAL REQUEST*
+━━━━━━━━━━━━━━━━━━━━━━━━━
+🔖 Request ID: \`${request.requestId}\`
+👤 Customer: ${customer.name}
+💰 Balance: ${formatCurrency(customer.balance, customer.currency)}
+💵 Amount: ${formatCurrency(amount, customer.currency)}
+━━━━━━━━━━━━━━━━━━━━━━━━━
+📤 *Sending To:*
+${accountDetails}
+━━━━━━━━━━━━━━━━━━━━━━━━━
+⏳ *Action Required*`;
+
+  const buttons = [
+    [
+      { text: "✅ Approve", callback_data: `withdrawal_approve_${request.requestId}` },
+      { text: "❌ Reject", callback_data: `withdrawal_reject_${request.requestId}` }
+    ]
+  ];
+
+  try { await sendTelegramMessageWithButtons(message, buttons); } catch (e) { console.error("Telegram error:", e); }
   res.redirect(`/withdraw/pending/${request.requestId}`);
 });
 

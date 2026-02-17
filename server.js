@@ -4931,18 +4931,8 @@ app.post("/add-money", requireAuth, async (req, res) => {
 
   const request = await createDepositRequest({ customerId: req.session.customerId, customerName: customer.name, customerEmail: customer.email, currency: customer.currency, amount, paymentMethod });
   const currencyConfig = CURRENCIES[customer.currency];
-  
-  // Original notification for admin panel
   const message = `💰 *NEW DEPOSIT REQUEST*\n━━━━━━━━━━━━━━━━━━━━━━━━━\n🔖 Request ID: \`${request.requestId}\`\n👤 Customer: ${customer.name}\n📧 Email: ${customer.email}\n💵 Amount: ${formatCurrency(amount, customer.currency)}\n💳 Method: ${currencyConfig.paymentMethodNames[paymentMethod]}\n━━━━━━━━━━━━━━━━━━━━━━━━━\n⏳ *Action Required:* Send payment details`;
-  
-  // NEW: Additional direct alert notification
-  const alertMessage = `💰 *NEW DEPOSIT REQUEST*\n━━━━━━━━━━━━━━━━━━━━━━\n🔖 Request ID: \`${request.requestId}\`\n👤 Customer: ${customer.name}\n📧 Email: ${customer.email}\n💵 Amount: ${formatCurrency(amount, customer.currency)}\n💳 Method: ${currencyConfig.paymentMethodNames[paymentMethod]}\n━━━━━━━━━━━━━━━━━━━━━━\n⏳ Action: Send payment details`;
-  
-  try { 
-    await sendTelegramMessage(message); 
-    await sendTelegramMessage(alertMessage);
-  } catch (e) { console.error("Telegram error:", e); }
-  
+  try { await sendTelegramMessage(message); } catch (e) { console.error("Telegram error:", e); }
   res.redirect(`/add-money/waiting/${request.requestId}`);
 });
 
@@ -5097,26 +5087,13 @@ app.post("/withdraw", requireAuth, async (req, res) => {
   if (parseFloat(amount) > customer.balance) { return res.redirect("/withdraw?error=insufficient"); }
 
   const request = await createWithdrawalRequest({ customerId: req.session.customerId, customerName: customer.name, currency: customer.currency, amount, withdrawalAccount });
-  
-  // Get masked account number for the alert
-  const maskedAccount = maskAccountNumber(withdrawalAccount.iban || withdrawalAccount.accountNumber);
-  
-  // Original detailed notification
   let accountDetails = `Bank: ${withdrawalAccount.bankName}`;
   if (customer.currency === "EUR") { accountDetails += `\nIBAN: ${withdrawalAccount.iban}\nBIC: ${withdrawalAccount.bic}`; }
   else if (customer.currency === "GBP") { accountDetails += `\nAccount: ${withdrawalAccount.accountNumber}\nSort Code: ${withdrawalAccount.sortCode}`; }
   else { accountDetails += `\nAccount: ${withdrawalAccount.accountNumber}\nRouting: ${withdrawalAccount.routingNumber}`; }
 
   const message = `💸 *NEW WITHDRAWAL REQUEST*\n━━━━━━━━━━━━━━━━━━━━━━━━━\n🔖 Request ID: \`${request.requestId}\`\n👤 Customer: ${customer.name}\n💰 Balance: ${formatCurrency(customer.balance, customer.currency)}\n💵 Amount: ${formatCurrency(amount, customer.currency)}\n━━━━━━━━━━━━━━━━━━━━━━━━━\n📤 *Sending To:*\n${accountDetails}\n━━━━━━━━━━━━━━━━━━━━━━━━━\n⏳ *Action Required:* Approve or reject`;
-  
-  // NEW: Additional direct alert notification
-  const alertMessage = `💸 *NEW WITHDRAWAL REQUEST*\n━━━━━━━━━━━━━━━━━━━━━━\n🔖 Request ID: \`${request.requestId}\`\n👤 Customer: ${customer.name}\n💰 Balance: ${formatCurrency(customer.balance, customer.currency)}\n💵 Amount: ${formatCurrency(amount, customer.currency)}\n📤 To: ${withdrawalAccount.bankName} (${maskedAccount})\n━━━━━━━━━━━━━━━━━━━━━━\n⏳ Action: Approve or reject`;
-  
-  try { 
-    await sendTelegramMessage(message); 
-    await sendTelegramMessage(alertMessage);
-  } catch (e) { console.error("Telegram error:", e); }
-  
+  try { await sendTelegramMessage(message); } catch (e) { console.error("Telegram error:", e); }
   res.redirect(`/withdraw/pending/${request.requestId}`);
 });
 

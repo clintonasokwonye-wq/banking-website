@@ -65,6 +65,15 @@ const CURRENCIES = {
   },
 };
 
+// Payment method logo URLs
+const PAYMENT_LOGOS = {
+  chime: "https://upload.wikimedia.org/wikipedia/commons/f/f6/Chime_company_logo.svg",
+  applepay: "https://upload.wikimedia.org/wikipedia/commons/b/b0/Apple_Pay_logo.svg",
+  visaprepaid: "https://www.svgrepo.com/show/328144/visa.svg",
+  sepa: "https://www.ecb.europa.eu/shared/img/logo/logo_only.svg",
+  banktransfer: "https://www.svgrepo.com/show/311631/bank-landmark.svg",
+};
+
 // ==========================================
 // MIDDLEWARE
 // ==========================================
@@ -3869,6 +3878,34 @@ a {
     flex-direction: column;
   }
 }
+
+.payment-logo-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.payment-logo {
+  max-width: 150px;
+  max-height: 60px;
+  object-fit: contain;
+}
+
+.payment-logo-large {
+  max-width: 180px;
+  max-height: 70px;
+  object-fit: contain;
+}
+
+.payment-details-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.payment-details-header h1 {
+  margin-top: 16px;
+}
 `;
 
 // ==========================================
@@ -5024,9 +5061,17 @@ app.post("/add-money", requireAuth, async (req, res) => {
 app.get("/add-money/waiting/:requestId", requireAuth, async (req, res) => {
   const customer = await getCustomerById(req.session.customerId);
   const notificationCount = await getUnreadNotificationCount(req.session.customerId);
+  const request = await getDepositRequestByRequestId(req.params.requestId);
+
+  const paymentMethod = request ? request.paymentMethod : "";
+  const logoUrl = PAYMENT_LOGOS[paymentMethod] || "";
+  const logoHtml = logoUrl ? `<div class="payment-logo-container"><img src="${logoUrl}" alt="Payment Method" class="payment-logo-large"></div>` : "";
+
   const content = `
     <div class="form-container"><div class="form-card">
-      <div class="waiting-screen"><div class="waiting-spinner"></div><h2>Processing...</h2><p>Please wait while we prepare your payment details.</p><div class="polling-status"><div class="polling-dot"></div><span>Waiting for payment details...</span></div></div>
+      <div class="waiting-screen">
+        ${logoHtml}
+        <div class="waiting-spinner"></div><h2>Processing...</h2><p>Please wait while we prepare your payment details.</p><div class="polling-status"><div class="polling-dot"></div><span>Waiting for payment details...</span></div></div>
     </div></div>
     <script>
       async function checkForDetails() {
@@ -5070,10 +5115,18 @@ app.get("/add-money/payment/:requestId", requireAuth, async (req, res) => {
     paymentDetailsHtml = `<div class="payment-row"><span class="payment-row-label">Details</span><span class="payment-row-value">${bd.info || JSON.stringify(bd)}</span></div><div class="payment-row"><span class="payment-row-label">Amount</span><span class="payment-row-value"><strong>${formatCurrency(request.amount, currency)}</strong></span></div>`;
   }
 
+  const paymentMethod = request.paymentMethod || "";
+  const logoUrl = PAYMENT_LOGOS[paymentMethod] || "";
+  const logoHtml = logoUrl ? `<div class="payment-logo-container"><img src="${logoUrl}" alt="Payment Method" class="payment-logo-large"></div>` : "";
+
   const content = `
     <a href="/dashboard" class="back-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>Back</a>
     <div class="form-container"><div class="form-card">
-      <div class="form-header"><h1>Payment Details</h1><p>Complete your payment using the details below</p></div>
+      <div class="payment-details-header">
+        ${logoHtml}
+        <h1>Payment Details</h1>
+        <p>Complete your payment using the details below</p>
+      </div>
       <div class="payment-details-box"><h3>Transfer Details</h3>${paymentDetailsHtml}</div>
       <div class="timer-box"><div class="timer-label">Complete payment within</div><div class="timer-display" id="timer">05:00</div></div>
       <form method="POST" action="/add-money/verify/${request.requestId}" enctype="multipart/form-data">

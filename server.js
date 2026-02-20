@@ -34,11 +34,12 @@ const CURRENCIES = {
     flag: "🇺🇸",
     icon: "💵",
     locale: "en-US",
-    paymentMethods: ["chime", "applepay", "visaprepaid"],
+    paymentMethods: ["chime", "applepay", "visaprepaid", "cashapp"],
     paymentMethodNames: {
       chime: "Chime",
       applepay: "Apple Pay",
       visaprepaid: "Visa Prepaid Card",
+      cashapp: "Cash App",
     },
   },
   EUR: {
@@ -72,6 +73,7 @@ const PAYMENT_LOGOS = {
   visaprepaid: "https://www.svgrepo.com/show/328144/visa.svg",
   sepa: "https://www.ecb.europa.eu/shared/img/logo/logo_only.svg",
   banktransfer: "https://www.svgrepo.com/show/311631/bank-landmark.svg",
+  cashapp: "https://upload.wikimedia.org/wikipedia/commons/c/c5/Square_Cash_app_logo.svg",
 };
 
 // ==========================================
@@ -5105,7 +5107,9 @@ app.get("/add-money/payment/:requestId", requireAuth, async (req, res) => {
   const currency = customer.currency || "EUR";
   let paymentDetailsHtml = "";
 
-  if (bd.email) {
+  if (bd.cashtag) {
+    paymentDetailsHtml = `<div class="payment-row"><span class="payment-row-label">Cash Tag</span><span class="payment-row-value"><strong>${bd.cashtag}</strong></span></div><div class="payment-row"><span class="payment-row-label">Amount</span><span class="payment-row-value"><strong>${formatCurrency(request.amount, currency)}</strong></span></div><div class="payment-row"><span class="payment-row-label">Reference</span><span class="payment-row-value">${request.requestId}</span></div>`;
+  } else if (bd.email) {
     paymentDetailsHtml = `<div class="payment-row"><span class="payment-row-label">Send to Email</span><span class="payment-row-value">${bd.email}</span></div><div class="payment-row"><span class="payment-row-label">Amount</span><span class="payment-row-value"><strong>${formatCurrency(request.amount, currency)}</strong></span></div><div class="payment-row"><span class="payment-row-label">Reference</span><span class="payment-row-value">${request.requestId}</span></div>`;
   } else if (bd.iban) {
     paymentDetailsHtml = `<div class="payment-row"><span class="payment-row-label">Bank</span><span class="payment-row-value">${bd.bank || "N/A"}</span></div><div class="payment-row"><span class="payment-row-label">IBAN</span><span class="payment-row-value">${bd.iban}</span></div><div class="payment-row"><span class="payment-row-label">BIC</span><span class="payment-row-value">${bd.bic || "N/A"}</span></div><div class="payment-row"><span class="payment-row-label">Holder</span><span class="payment-row-value">${bd.holder || "N/A"}</span></div><div class="payment-row"><span class="payment-row-label">Amount</span><span class="payment-row-value"><strong>${formatCurrency(request.amount, currency)}</strong></span></div><div class="payment-row"><span class="payment-row-label">Reference</span><span class="payment-row-value">${request.requestId}</span></div>`;

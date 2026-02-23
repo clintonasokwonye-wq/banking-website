@@ -757,6 +757,17 @@ body {
   color: #1a1a1a;
 }
 
+.demo-banner {
+  width: 100%;
+  background-color: #ffffff;
+  color: #ffffff;
+  text-align: center;
+  font-size: 12px;
+  padding: 6px 0;
+  position: relative;
+  z-index: 9999;
+}
+
 a {
   text-decoration: none;
   color: inherit;
@@ -4009,13 +4020,16 @@ app.get("/", (req, res) => {
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Community Credit Union - Banking</title>
+      <title>Community Credit Union</title>
       <link rel="preconnect" href="https://fonts.googleapis.com">
       <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
       <style>${FULL_CSS}</style>
     </head>
     <body class="homepage-body">
+      <div class="demo-banner">
+        Mock Banking Project
+      </div>
       <nav class="top-nav">
         <div class="nav-container">
           <a href="#">Contact Us</a>

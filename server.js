@@ -4235,16 +4235,6 @@ app.get("/", (req, res) => {
         </div>
       </section>
 
-      <section class="trust-section">
-        <div class="trust-container">
-          <h2 class="home-section-title">Why <strong>Trust</strong> Us?</h2>
-          <div class="trust-grid">
-            <div class="trust-card"><div class="trust-card-icon">🔒</div><h3>Bank-Level Security</h3><p>Your money and data are protected with state-of-the-art encryption.</p></div>
-            <div class="trust-card"><div class="trust-card-icon">🏦</div><h3>FDIC Insured</h3><p>Your deposits are insured up to $250,000.</p></div>
-            <div class="trust-card"><div class="trust-card-icon">💬</div><h3>24/7 Support</h3><p>Our dedicated support team is always here to help you.</p></div>
-          </div>
-        </div>
-      </section>
 
       <footer class="home-footer">
         <div class="edu-disclaimer">

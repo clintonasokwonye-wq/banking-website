@@ -4249,10 +4249,10 @@ app.get("/", (req, res) => {
         <div class="footer-container">
           <div class="footer-section"><h4>Contact Us</h4><a href="#">Branch & ATM Locations</a><a href="#">(800) 555-0123</a><a href="#">Chat with Us</a></div>
           <div class="footer-section"><h4>About Us</h4><a href="#">Our Story</a><a href="#">Careers</a><a href="#">Community Impact</a></div>
-          <div class="footer-section"><h4>Security</h4><a href="#">Security Center</a><a href="#">Privacy Policy</a><div class="footer-badges"><div class="footer-badge">FDIC<br>Insured</div><div class="footer-badge">Equal Housing<br>Lender</div></div></div>
+          <div class="footer-section"><h4>Security</h4><a href="#">Security Center</a><a href="#">Privacy Policy</a><div class="footer-badges"><div class="footer-badge"><br>Insured</div><div class="footer-badge">Equal Housing<br>Lender</div></div></div>
         </div>
         <div class="footer-bottom">
-          <p>Member accounts are federally insured up to $250,000.</p>
+          <p>Member accounts are insured.</p>
           <div class="footer-links-bottom"><a href="#">Terms &amp; Conditions</a><a href="#">Privacy</a><a href="#">Accessibility</a><a href="/terms">Terms of Service</a></div>
         </div>
       </footer>

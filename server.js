@@ -769,8 +769,8 @@ body {
 }
 
 .edu-disclaimer {
-  background-color: #0f5132;
-  color: #0f5132;
+  background-color: #00796B;
+  color: #00796B;
   padding: 20px;
   display: flex;
   align-items: flex-start;

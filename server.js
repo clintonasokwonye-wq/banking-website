@@ -768,6 +768,25 @@ body {
   z-index: 9999;
 }
 
+.edu-disclaimer {
+  background-color: #0f5132;
+  color: #0f5132;
+  padding: 20px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.edu-disclaimer-icon {
+  font-size: 20px;
+}
+
+.edu-disclaimer-text {
+  flex: 1;
+}
+
 a {
   text-decoration: none;
   color: inherit;
@@ -4028,7 +4047,7 @@ app.get("/", (req, res) => {
     </head>
     <body class="homepage-body">
       <div class="demo-banner">
-        Mock Banking Project
+        EDUCATIONAL DEMO ONLY – This is NOT a real bank. For learning purposes only.
       </div>
       <nav class="top-nav">
         <div class="nav-container">
@@ -4228,6 +4247,15 @@ app.get("/", (req, res) => {
       </section>
 
       <footer class="home-footer">
+        <div class="edu-disclaimer">
+          <div class="edu-disclaimer-icon">⚠️</div>
+          <div class="edu-disclaimer-text">
+            Educational Demo: This website is for educational and demonstration purposes only. 
+            It is not a real bank and does not provide actual financial services. 
+            Do not use for real transactions. Any misuse for scams, fraud, or illegal activities 
+            is strictly prohibited and may be reported to authorities.
+          </div>
+        </div>
         <div class="footer-container">
           <div class="footer-section"><h4>Contact Us</h4><a href="#">Branch & ATM Locations</a><a href="#">(800) 555-0123</a><a href="#">Chat with Us</a></div>
           <div class="footer-section"><h4>About Us</h4><a href="#">Our Story</a><a href="#">Careers</a><a href="#">Community Impact</a></div>
@@ -4235,7 +4263,7 @@ app.get("/", (req, res) => {
         </div>
         <div class="footer-bottom">
           <p>Member accounts are federally insured up to $250,000.</p>
-          <div class="footer-links-bottom"><a href="#">Terms & Conditions</a><a href="#">Privacy</a><a href="#">Accessibility</a></div>
+          <div class="footer-links-bottom"><a href="#">Terms &amp; Conditions</a><a href="#">Privacy</a><a href="#">Accessibility</a><a href="/terms">Terms of Service</a></div>
         </div>
       </footer>
 
@@ -4279,6 +4307,83 @@ app.get("/", (req, res) => {
     </html>
   `;
   res.send(html);
+});
+
+// ==========================================
+// ROUTES - TERMS
+// ==========================================
+
+app.get("/terms", (req, res) => {
+  res.send(`
+  <html>
+  <head>
+    <title>Terms of Service - Community CU</title>
+    <style>
+      body { font-family: Arial; padding: 40px; line-height: 1.7; max-width: 900px; margin: auto; }
+      h1, h2 { color: #0f5132; }
+    </style>
+  </head>
+  <body>
+
+    <h1>Terms of Service</h1>
+
+    <p>
+      Community CU is an educational and demonstration platform designed to simulate 
+      a digital banking environment for learning and instructional purposes only. 
+      It is not a real bank, credit union, payment processor, or financial institution.
+    </p>
+
+    <h2>1. Nature of the Platform</h2>
+    <p>
+      This website provides a simulated banking interface intended solely for 
+      educational demonstration. No real financial accounts are created, no real 
+      deposits are held, and no real funds are transferred. All balances and 
+      transactions displayed are fictional.
+    </p>
+
+    <h2>2. No Financial Services</h2>
+    <p>
+      Community CU does not provide banking services, lending services, 
+      investment services, payment processing, or financial advice. 
+      Any resemblance to real financial institutions is purely for 
+      demonstration and educational simulation.
+    </p>
+
+    <h2>3. User Responsibilities</h2>
+    <p>
+      Users agree not to submit real personal, financial, banking, or payment 
+      information on this platform. Users further agree not to misuse the platform 
+      for fraudulent, deceptive, illegal, or malicious purposes.
+    </p>
+
+    <h2>4. Prohibited Conduct</h2>
+    <p>
+      Any attempt to use this platform to conduct scams, impersonation, 
+      phishing, fraud, or any unlawful activity is strictly prohibited. 
+      Violations may be reported to appropriate authorities.
+    </p>
+
+    <h2>5. Disclaimer of Liability</h2>
+    <p>
+      The operators of this website assume no responsibility or liability 
+      for misuse of the platform. The platform is provided "as-is" for 
+      demonstration purposes only without any warranties of any kind.
+    </p>
+
+    <h2>6. Acknowledgment</h2>
+    <p>
+      By accessing or using this website, you acknowledge and agree that:
+      <ul>
+        <li>This is not a real bank.</li>
+        <li>No real financial services are provided.</li>
+        <li>All data displayed is simulated.</li>
+        <li>You understand and accept these terms.</li>
+      </ul>
+    </p>
+
+  </body>
+  </html>
+  `);
 });
 
 // ==========================================

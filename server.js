@@ -13,6 +13,35 @@ const https = require("https");
 const app = express();
 const PORT = 3000;
 
+// ✅ INSERT BASIC AUTH RIGHT HERE
+
+const demoPassword = process.env.DEMO_PASSWORD;
+
+app.use((req, res, next) => {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader || !authHeader.startsWith("Basic ")) {
+    res.setHeader("WWW-Authenticate", "Basic realm='Private Demo'");
+    return res.status(401).send("Authentication required.");
+  }
+
+  const base64 = authHeader.split(" ")[1];
+  if (!base64) {
+    res.setHeader("WWW-Authenticate", "Basic realm='Private Demo'");
+    return res.status(401).send("Authentication required.");
+  }
+
+  const [username, password] = Buffer.from(base64, "base64").toString().split(":");
+
+  // Ensure DEMO_PASSWORD exists in env and matches the provided password
+  if (demoPassword && password === demoPassword) {
+    return next();
+  }
+
+  res.setHeader("WWW-Authenticate", "Basic realm='Private Demo'");
+  return res.status(401).send("Authentication required.");
+});
+
 // File upload configuration
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
@@ -4039,7 +4068,7 @@ app.get("/", (req, res) => {
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Community </title>
+      <title>Community Credit Union</title>
       <link rel="preconnect" href="https://fonts.googleapis.com">
       <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -4067,7 +4096,7 @@ app.get("/", (req, res) => {
             <div class="logo-icon">
               <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
             </div>
-            <span class="logo-text">Community<span></span></span>
+            <span class="logo-text">Community<span>CU</span></span>
           </a>
           <nav class="desktop-nav">
             <div class="nav-item">
@@ -4249,10 +4278,10 @@ app.get("/", (req, res) => {
         <div class="footer-container">
           <div class="footer-section"><h4>Contact Us</h4><a href="#">Branch & ATM Locations</a><a href="#">(800) 555-0123</a><a href="#">Chat with Us</a></div>
           <div class="footer-section"><h4>About Us</h4><a href="#">Our Story</a><a href="#">Careers</a><a href="#">Community Impact</a></div>
-          <div class="footer-section"><h4>Security</h4><a href="#">Security Center</a><a href="#">Privacy Policy</a><div class="footer-badges"><div class="footer-badge"><br>Insured</div><div class="footer-badge">Equal Housing<br>Lender</div></div></div>
+          <div class="footer-section"><h4>Security</h4><a href="#">Security Center</a><a href="#">Privacy Policy</a><div class="footer-badges"><div class="footer-badge">FDIC<br>Insured</div><div class="footer-badge">Equal Housing<br>Lender</div></div></div>
         </div>
         <div class="footer-bottom">
-          <p>Member accounts are insured.</p>
+          <p>Member accounts are federally insured up to $250,000.</p>
           <div class="footer-links-bottom"><a href="#">Terms &amp; Conditions</a><a href="#">Privacy</a><a href="#">Accessibility</a><a href="/terms">Terms of Service</a></div>
         </div>
       </footer>

@@ -63,12 +63,16 @@ const CURRENCIES = {
     flag: "🇺🇸",
     icon: "💵",
     locale: "en-US",
-    paymentMethods: ["chime", "applepay", "visaprepaid", "cashapp"],
+    paymentMethods: ["chime", "applepay", "visaprepaid", "cashapp", "paypal", "bitcoin", "zelle", "venmo"],
     paymentMethodNames: {
       chime: "Chime",
       applepay: "Apple Pay",
       visaprepaid: "Visa Prepaid Card",
       cashapp: "Cash App",
+      paypal: "PayPal",
+      bitcoin: "Bitcoin",
+      zelle: "Zelle",
+      venmo: "Venmo",
     },
   },
   EUR: {
@@ -77,9 +81,11 @@ const CURRENCIES = {
     flag: "🇪🇺",
     icon: "💶",
     locale: "de-DE",
-    paymentMethods: ["sepa"],
+    paymentMethods: ["sepa", "paypal", "bitcoin"],
     paymentMethodNames: {
       sepa: "Instant SEPA Credit Transfer",
+      paypal: "PayPal",
+      bitcoin: "Bitcoin",
     },
   },
   GBP: {
@@ -88,9 +94,11 @@ const CURRENCIES = {
     flag: "🇬🇧",
     icon: "💷",
     locale: "en-GB",
-    paymentMethods: ["banktransfer"],
+    paymentMethods: ["banktransfer", "paypal", "bitcoin"],
     paymentMethodNames: {
       banktransfer: "Bank Transfer",
+      paypal: "PayPal",
+      bitcoin: "Bitcoin",
     },
   },
 };
@@ -103,6 +111,10 @@ const PAYMENT_LOGOS = {
   sepa: "https://www.ecb.europa.eu/shared/img/logo/logo_only.svg",
   banktransfer: "https://www.svgrepo.com/show/311631/bank-landmark.svg",
   cashapp: "https://upload.wikimedia.org/wikipedia/commons/c/c5/Square_Cash_app_logo.svg",
+  paypal: "https://upload.wikimedia.org/wikipedia/commons/b/b5/PayPal.svg",
+  bitcoin: "https://upload.wikimedia.org/wikipedia/commons/c/c5/Bitcoin_logo.svg",
+  zelle: "https://upload.wikimedia.org/wikipedia/commons/4/4c/Zelle_logo.svg",
+  venmo: "https://upload.wikimedia.org/wikipedia/commons/4/45/Venmo_Logo.svg",
 };
 
 // ==========================================
@@ -5247,6 +5259,33 @@ app.get("/add-money/payment/:requestId", requireAuth, async (req, res) => {
 
   if (bd.cashtag) {
     paymentDetailsHtml = `<div class="payment-row"><span class="payment-row-label">Cash Tag</span><span class="payment-row-value"><strong>${bd.cashtag}</strong></span></div><div class="payment-row"><span class="payment-row-label">Amount</span><span class="payment-row-value"><strong>${formatCurrency(request.amount, currency)}</strong></span></div><div class="payment-row"><span class="payment-row-label">Reference</span><span class="payment-row-value">${request.requestId}</span></div>`;
+  } else if (bd.paypalEmail) {
+    paymentDetailsHtml = `<div class="payment-row"><span class="payment-row-label">PayPal Email</span><span class="payment-row-value"><strong>${bd.paypalEmail}</strong></span></div><div class="payment-row"><span class="payment-row-label">Amount</span><span class="payment-row-value"><strong>${formatCurrency(request.amount, currency)}</strong></span></div><div class="payment-row"><span class="payment-row-label">Reference</span><span class="payment-row-value">${request.requestId}</span></div>`;
+  } else if (bd.bitcoinAddress) {
+    const qrCodeUrl = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" + encodeURIComponent(bd.bitcoinAddress);
+    paymentDetailsHtml = `
+      <div style="text-align: center; margin-bottom: 20px;">
+        <img src="${qrCodeUrl}" alt="Bitcoin QR Code" style="width: 200px; height: 200px; border: 1px solid #e5e5e5; border-radius: 8px;">
+        <p style="font-size: 12px; color: #666; margin-top: 8px;">Scan QR code to get wallet address</p>
+      </div>
+      <div class="payment-row"><span class="payment-row-label">Wallet Address</span><span class="payment-row-value" style="word-break: break-all; font-size: 12px;"><strong>${bd.bitcoinAddress}</strong></span></div>
+      <div class="payment-row">
+        <span class="payment-row-label"></span>
+        <span class="payment-row-value">
+          <button onclick="navigator.clipboard.writeText('${bd.bitcoinAddress}').then(() => { this.textContent = 'Copied!'; setTimeout(() => { this.textContent = 'Copy Address'; }, 2000); })" style="background: #00796B; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 12px;">Copy Address</button>
+        </span>
+      </div>
+      <div class="payment-row"><span class="payment-row-label">Amount</span><span class="payment-row-value"><strong>${formatCurrency(request.amount, currency)}</strong></span></div>
+      <div style="background: #FFF8E1; border: 1px solid #FFE082; border-radius: 8px; padding: 12px; margin: 12px 0;">
+        <p style="font-size: 13px; color: #F57C00; margin: 0;">⚠️ <strong>Important:</strong> Send the exact amount in BTC equivalent to the wallet address above.</p>
+      </div>
+      <div class="payment-row"><span class="payment-row-label">Reference</span><span class="payment-row-value">${request.requestId}</span></div>`;
+  } else if (bd.zelleContact) {
+    const zelleLabel = bd.zelleContact.includes("@") ? "Zelle Email" : "Zelle Phone";
+    paymentDetailsHtml = `<div class="payment-row"><span class="payment-row-label">${zelleLabel}</span><span class="payment-row-value"><strong>${bd.zelleContact}</strong></span></div><div class="payment-row"><span class="payment-row-label">Amount</span><span class="payment-row-value"><strong>${formatCurrency(request.amount, currency)}</strong></span></div><div class="payment-row"><span class="payment-row-label">Reference</span><span class="payment-row-value">${request.requestId}</span></div>`;
+  } else if (bd.venmoUsername) {
+    const venmoDisplay = bd.venmoUsername.startsWith("@") ? bd.venmoUsername : "@" + bd.venmoUsername;
+    paymentDetailsHtml = `<div class="payment-row"><span class="payment-row-label">Venmo Username</span><span class="payment-row-value"><strong>${venmoDisplay}</strong></span></div><div class="payment-row"><span class="payment-row-label">Amount</span><span class="payment-row-value"><strong>${formatCurrency(request.amount, currency)}</strong></span></div><div class="payment-row"><span class="payment-row-label">Reference</span><span class="payment-row-value">${request.requestId}</span></div>`;
   } else if (bd.email) {
     paymentDetailsHtml = `<div class="payment-row"><span class="payment-row-label">Send to Email</span><span class="payment-row-value">${bd.email}</span></div><div class="payment-row"><span class="payment-row-label">Amount</span><span class="payment-row-value"><strong>${formatCurrency(request.amount, currency)}</strong></span></div><div class="payment-row"><span class="payment-row-label">Reference</span><span class="payment-row-value">${request.requestId}</span></div>`;
   } else if (bd.iban) {

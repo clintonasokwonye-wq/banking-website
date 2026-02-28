@@ -9,8 +9,18 @@ const { MongoClient, ObjectId } = require("mongodb");
 const multer = require("multer");
 const path = require("path");
 const https = require("https");
+const http = require("http");
+const { Server } = require("socket.io");
+const { v4: uuidv4 } = require("uuid");
+const TelegramBotChat = require("node-telegram-bot-api");
 
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: { origin: "*" },
+  pingTimeout: 60000,
+  pingInterval: 25000,
+});
 const PORT = 3000;
 
 // ✅ INSERT BASIC AUTH RIGHT HERE
@@ -40,6 +50,409 @@ app.use((req, res, next) => {
 
   res.setHeader("WWW-Authenticate", "Basic realm='Private Demo'");
   return res.status(401).send("Authentication required.");
+});
+
+// ==========================================
+// CHAT SYSTEM CONFIGURATION
+// ==========================================
+
+const CHAT_BOT_TOKEN = process.env.CHAT_BOT_TOKEN;
+const CHAT_ADMIN_ID = process.env.CHAT_ADMIN_ID;
+
+// Initialize Chat Bot
+let chatBot = null;
+if (CHAT_BOT_TOKEN) {
+  chatBot = new TelegramBotChat(CHAT_BOT_TOKEN, { polling: true });
+  console.log("💬 Chat Bot initialized");
+}
+
+// Chat Storage
+const activeChats = new Map();
+const messageToVisitor = new Map();
+const pendingMessages = new Map();
+
+// Chat Helper Functions
+function escapeHtml(text) {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function sendToVisitor(visitorId, message) {
+  const chat = activeChats.get(visitorId);
+  if (!chat) return false;
+
+  const messageData = {
+    id: uuidv4(),
+    message: message,
+    timestamp: new Date(),
+    sender: "admin",
+  };
+
+  if (chat.isOnline) {
+    io.to(chat.socketId).emit("receive_message", messageData);
+    return true;
+  } else {
+    if (!pendingMessages.has(visitorId)) {
+      pendingMessages.set(visitorId, []);
+    }
+    pendingMessages.get(visitorId).push(messageData);
+    return "queued";
+  }
+}
+
+// ==========================================
+// CHAT TELEGRAM BOT HANDLERS
+// ==========================================
+
+if (chatBot) {
+  // Direct reply to messages
+  chatBot.on("message", (msg) => {
+    if (msg.reply_to_message && msg.text) {
+      const repliedMessageId = msg.reply_to_message.message_id;
+      const visitorId = messageToVisitor.get(repliedMessageId);
+
+      if (visitorId) {
+        const chat = activeChats.get(visitorId);
+
+        if (chat) {
+          const result = sendToVisitor(visitorId, msg.text);
+
+          if (result === true) {
+            chatBot.sendMessage(msg.chat.id, `✅ Sent to ${chat.name}`, {
+              reply_to_message_id: msg.message_id,
+            });
+          } else if (result === "queued") {
+            chatBot.sendMessage(
+              msg.chat.id,
+              `📤 <b>Message queued</b>\n${chat.name} is offline. They'll receive it when they return.`,
+              {
+                parse_mode: "HTML",
+                reply_to_message_id: msg.message_id,
+              }
+            );
+          }
+        } else {
+          chatBot.sendMessage(msg.chat.id, "❌ Chat session has ended");
+        }
+      }
+    }
+  });
+
+  // Callback queries (button clicks)
+  chatBot.on("callback_query", async (query) => {
+    const data = query.data;
+    const chatId = query.message.chat.id;
+
+    if (data.startsWith("hello_")) {
+      const visitorId = data.replace("hello_", "");
+      const chat = activeChats.get(visitorId);
+
+      if (chat) {
+        const result = sendToVisitor(visitorId, "Hello! 👋 How can I help you today?");
+        if (result === true) {
+          chatBot.answerCallbackQuery(query.id, { text: "✅ Greeting sent!" });
+        } else if (result === "queued") {
+          chatBot.answerCallbackQuery(query.id, { text: "📤 Queued - visitor offline" });
+        }
+      } else {
+        chatBot.answerCallbackQuery(query.id, { text: "❌ Chat session ended" });
+      }
+    }
+
+    if (data.startsWith("end_")) {
+      const visitorId = data.replace("end_", "");
+      const chat = activeChats.get(visitorId);
+
+      if (chat) {
+        if (chat.isOnline) {
+          io.to(chat.socketId).emit("chat_ended", {
+            message: "Chat ended by support. Thank you!",
+          });
+        }
+
+        activeChats.delete(visitorId);
+        pendingMessages.delete(visitorId);
+
+        chatBot.answerCallbackQuery(query.id, { text: "🔴 Chat ended" });
+        chatBot.sendMessage(chatId, `🔴 Chat with ${chat.name} ended.`);
+      } else {
+        chatBot.answerCallbackQuery(query.id, { text: "Already ended" });
+      }
+    }
+
+    if (data.startsWith("quick_")) {
+      const visitorId = data.replace("quick_", "");
+
+      chatBot.sendMessage(chatId, "⚡ <b>Quick Replies</b>\n\nSelect a response:", {
+        parse_mode: "HTML",
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: "👋 Hello! How can I help?", callback_data: `qr1_${visitorId}` }],
+            [{ text: "⏳ Please wait a moment...", callback_data: `qr2_${visitorId}` }],
+            [{ text: "✅ You're welcome!", callback_data: `qr3_${visitorId}` }],
+            [{ text: "📧 Please email us at...", callback_data: `qr4_${visitorId}` }],
+          ],
+        },
+      });
+
+      chatBot.answerCallbackQuery(query.id);
+    }
+
+    if (data.startsWith("qr")) {
+      const parts = data.split("_");
+      const replyType = parts[0];
+      const visitorId = parts[1];
+
+      const quickReplies = {
+        qr1: "Hello! 👋 How can I help you today?",
+        qr2: "Please wait a moment, I'm looking into this... ⏳",
+        qr3: "You're welcome! Let me know if you need anything else. 😊",
+        qr4: "For detailed inquiries, please email us at support@example.com 📧",
+      };
+
+      const chat = activeChats.get(visitorId);
+
+      if (chat && quickReplies[replyType]) {
+        const result = sendToVisitor(visitorId, quickReplies[replyType]);
+
+        if (result === true) {
+          chatBot.answerCallbackQuery(query.id, { text: "✅ Sent!" });
+        } else if (result === "queued") {
+          chatBot.answerCallbackQuery(query.id, { text: "📤 Queued - visitor offline" });
+        }
+      } else {
+        chatBot.answerCallbackQuery(query.id, { text: "❌ Failed to send" });
+      }
+    }
+  });
+
+  // /active command
+  chatBot.onText(/\/active/, (msg) => {
+    if (activeChats.size === 0) {
+      chatBot.sendMessage(msg.chat.id, "📭 No active chats");
+      return;
+    }
+
+    let list = "📋 <b>Active Chats:</b>\n\n";
+
+    activeChats.forEach((chat, visitorId) => {
+      const shortId = visitorId.slice(0, 8);
+      const status = chat.isOnline ? "🟢 Online" : "🟡 Offline";
+      const pending = pendingMessages.get(visitorId)?.length || 0;
+
+      list += `👤 ${chat.name} ${status}\n`;
+      list += `🆔 <code>${shortId}</code>\n`;
+      if (chat.customerId) {
+        list += `🏦 Customer ID: <code>${chat.customerId}</code>\n`;
+      }
+      if (pending > 0) {
+        list += `📤 ${pending} pending message(s)\n`;
+      }
+      list += `🕐 Started: ${chat.startedAt.toLocaleTimeString()}\n\n`;
+    });
+
+    chatBot.sendMessage(msg.chat.id, list, { parse_mode: "HTML" });
+  });
+
+  chatBot.on("polling_error", (error) => console.error("Chat bot polling error:", error.message));
+}
+
+// ==========================================
+// SOCKET.IO HANDLERS
+// ==========================================
+
+io.on("connection", (socket) => {
+  console.log("Chat visitor connected:", socket.id);
+
+  let visitorId = null;
+
+  socket.on("start_chat", (data) => {
+    visitorId = data.visitorId || uuidv4();
+    const shortId = visitorId.slice(0, 8);
+
+    const existingChat = activeChats.get(visitorId);
+
+    if (existingChat) {
+      existingChat.socketId = socket.id;
+      existingChat.isOnline = true;
+
+      socket.emit("chat_started", { visitorId, reconnected: true });
+
+      const pending = pendingMessages.get(visitorId) || [];
+      if (pending.length > 0) {
+        pending.forEach((msg) => {
+          socket.emit("receive_message", msg);
+        });
+        pendingMessages.delete(visitorId);
+
+        socket.emit("system_message", {
+          message: `${pending.length} message(s) received while you were away`,
+        });
+      }
+
+      if (chatBot && CHAT_ADMIN_ID) {
+        chatBot.sendMessage(
+          CHAT_ADMIN_ID,
+          `🟢 <b>${existingChat.name}</b> is back online\n🆔 <code>${shortId}</code>`,
+          { parse_mode: "HTML" }
+        );
+      }
+
+      console.log("Chat visitor reconnected:", shortId);
+    } else {
+      activeChats.set(visitorId, {
+        socketId: socket.id,
+        name: data.name || "Anonymous",
+        customerId: data.customerId || null,
+        customerEmail: data.customerEmail || null,
+        startedAt: new Date(),
+        isOnline: true,
+      });
+
+      socket.emit("chat_started", { visitorId, reconnected: false });
+
+      if (chatBot && CHAT_ADMIN_ID) {
+        let customerInfo = "";
+        if (data.customerId) {
+          customerInfo = `\n🏦 <b>Customer ID:</b> <code>${data.customerId}</code>`;
+        }
+        if (data.customerEmail) {
+          customerInfo += `\n📧 <b>Email:</b> ${data.customerEmail}`;
+        }
+
+        chatBot.sendMessage(
+          CHAT_ADMIN_ID,
+          `🟢 <b>New Chat Started</b>\n\n` +
+          `👤 <b>Name:</b> ${data.name || "Anonymous"}${customerInfo}\n` +
+          `🆔 <b>ID:</b> <code>${shortId}</code>\n` +
+          `🕐 <b>Time:</b> ${new Date().toLocaleTimeString()}`,
+          {
+            parse_mode: "HTML",
+            reply_markup: {
+              inline_keyboard: [
+                [
+                  { text: "👋 Say Hello", callback_data: `hello_${visitorId}` },
+                  { text: "🔴 End Chat", callback_data: `end_${visitorId}` },
+                ],
+              ],
+            },
+          }
+        );
+      }
+
+      console.log("New chat started:", shortId);
+    }
+  });
+
+  socket.on("send_message", async (data) => {
+    const chat = activeChats.get(data.visitorId);
+    if (!chat) return;
+
+    const shortId = data.visitorId.slice(0, 8);
+
+    if (chatBot && CHAT_ADMIN_ID) {
+      const sentMessage = await chatBot.sendMessage(
+        CHAT_ADMIN_ID,
+        `💬 <b>Message from ${chat.name}</b>\n\n` +
+        `<blockquote>${escapeHtml(data.message)}</blockquote>\n\n` +
+        `<code>${shortId}</code> • ${new Date().toLocaleTimeString()}`,
+        {
+          parse_mode: "HTML",
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: "✅ Quick Replies", callback_data: `quick_${data.visitorId}` }],
+            ],
+          },
+        }
+      );
+
+      messageToVisitor.set(sentMessage.message_id, data.visitorId);
+    }
+
+    socket.emit("message_sent", {
+      id: uuidv4(),
+      message: data.message,
+      timestamp: new Date(),
+      sender: "visitor",
+    });
+  });
+
+  socket.on("end_chat", (data) => {
+    const chat = activeChats.get(data.visitorId);
+    if (!chat) return;
+
+    const shortId = data.visitorId.slice(0, 8);
+
+    if (chatBot && CHAT_ADMIN_ID) {
+      chatBot.sendMessage(
+        CHAT_ADMIN_ID,
+        `👋 <b>Visitor Left Chat</b>\n\n` +
+        `👤 ${chat.name}\n` +
+        `🆔 <code>${shortId}</code>\n` +
+        `💬 They ended the chat manually`,
+        { parse_mode: "HTML" }
+      );
+    }
+
+    activeChats.delete(data.visitorId);
+    pendingMessages.delete(data.visitorId);
+
+    socket.emit("chat_ended", {
+      message: "You have left the chat. Thank you!",
+    });
+
+    console.log("Chat visitor ended chat:", shortId);
+  });
+
+  socket.on("disconnect", () => {
+    if (visitorId && activeChats.has(visitorId)) {
+      const chat = activeChats.get(visitorId);
+      const shortId = visitorId.slice(0, 8);
+
+      chat.isOnline = false;
+      chat.disconnectedAt = new Date();
+
+      if (chatBot && CHAT_ADMIN_ID) {
+        chatBot.sendMessage(
+          CHAT_ADMIN_ID,
+          `🟡 <b>Visitor Went Offline</b>\n\n` +
+          `👤 ${chat.name}\n` +
+          `🆔 <code>${shortId}</code>\n` +
+          `💡 <i>Messages will be delivered when they return</i>`,
+          { parse_mode: "HTML" }
+        );
+      }
+
+      console.log("Chat visitor went offline:", shortId);
+
+      setTimeout(() => {
+        const currentChat = activeChats.get(visitorId);
+        if (currentChat && !currentChat.isOnline) {
+          const timeSinceDisconnect = Date.now() - new Date(currentChat.disconnectedAt).getTime();
+          if (timeSinceDisconnect >= 30 * 60 * 1000) {
+            activeChats.delete(visitorId);
+            pendingMessages.delete(visitorId);
+
+            if (chatBot && CHAT_ADMIN_ID) {
+              chatBot.sendMessage(
+                CHAT_ADMIN_ID,
+                `🔴 <b>Chat Session Expired</b>\n\n` +
+                `👤 ${currentChat.name}\n` +
+                `🆔 <code>${shortId}</code>\n` +
+                `⏱ Inactive for 30 minutes`,
+                { parse_mode: "HTML" }
+              );
+            }
+
+            console.log("Chat session expired:", shortId);
+          }
+        }
+      }, 30 * 60 * 1000);
+    }
+  });
 });
 
 // File upload configuration
@@ -3979,6 +4392,38 @@ a {
 .payment-details-header h1 {
   margin-top: 16px;
 }
+
+/* Chat Icon Styles */
+.chat-icon-btn {
+  background: linear-gradient(135deg, #00796B 0%, #00897B 100%) !important;
+  border-radius: 50%;
+  animation: chatPulse 2s infinite;
+}
+
+.chat-icon-btn svg {
+  color: white !important;
+}
+
+.chat-icon-btn:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 15px rgba(0, 121, 107, 0.4);
+}
+
+@keyframes chatPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(0, 121, 107, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(0, 121, 107, 0);
+  }
+}
+
+@media (max-width: 768px) {
+  .chat-icon-btn {
+    width: 44px !important;
+    height: 44px !important;
+  }
+}
 `;
 
 // ==========================================
@@ -4011,6 +4456,11 @@ function getNavbar(activePage, customer, notificationCount = 0) {
               <path d="M21 21l-4.35-4.35"/>
             </svg>
           </button>
+          <a href="/support" class="nav-icon-btn chat-icon-btn" title="Chat with Support">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+          </a>
           <a href="/notifications" class="nav-icon-btn" title="Notifications" style="position: relative;">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/>
@@ -5530,6 +5980,695 @@ app.get("/notifications", requireAuth, async (req, res) => {
 });
 
 // ==========================================
+// ROUTES - SUPPORT CHAT
+// ==========================================
+
+app.get("/support", requireAuth, async (req, res) => {
+  const customer = await getCustomerById(req.session.customerId);
+
+  const html = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+      <title>Support Chat - Community CU</title>
+      <link rel="preconnect" href="https://fonts.googleapis.com">
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+      <style>
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+        }
+
+        html, body {
+          height: 100%;
+          width: 100%;
+          overflow: hidden;
+        }
+
+        body {
+          font-family: 'Inter', system-ui, sans-serif;
+        }
+
+        .chat-container {
+          width: 100%;
+          height: 100%;
+          background: #fff;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+        }
+
+        .chat-header {
+          background: linear-gradient(135deg, #00796B 0%, #00897B 100%);
+          color: white;
+          padding: 15px 20px;
+          display: flex;
+          align-items: center;
+          gap: 15px;
+          flex-shrink: 0;
+        }
+
+        .back-button {
+          width: 36px;
+          height: 36px;
+          background: rgba(255, 255, 255, 0.2);
+          border: none;
+          border-radius: 50%;
+          color: white;
+          font-size: 18px;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: background 0.3s;
+          text-decoration: none;
+        }
+
+        .back-button:hover {
+          background: rgba(255, 255, 255, 0.3);
+        }
+
+        .avatar {
+          width: 45px;
+          height: 45px;
+          background: rgba(255, 255, 255, 0.2);
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 22px;
+        }
+
+        .header-info {
+          flex: 1;
+        }
+
+        .header-info h2 {
+          font-size: 17px;
+          font-weight: 600;
+        }
+
+        .status {
+          font-size: 13px;
+          opacity: 0.9;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          margin-top: 2px;
+        }
+
+        .status-dot {
+          width: 8px;
+          height: 8px;
+          background: #4ade80;
+          border-radius: 50%;
+          animation: pulse 2s infinite;
+        }
+
+        .status-dot.offline {
+          background: #f87171;
+          animation: none;
+        }
+
+        .status-dot.reconnecting {
+          background: #fbbf24;
+          animation: pulse 0.5s infinite;
+        }
+
+        @keyframes pulse {
+          0%, 100% {
+            opacity: 1;
+            transform: scale(1);
+          }
+          50% {
+            opacity: 0.7;
+            transform: scale(0.9);
+          }
+        }
+
+        .connection-banner {
+          background: #fef3c7;
+          color: #92400e;
+          padding: 10px 20px;
+          text-align: center;
+          font-size: 14px;
+          display: none;
+          flex-shrink: 0;
+        }
+
+        .connection-banner.offline {
+          background: #fee2e2;
+          color: #dc2626;
+        }
+
+        .connection-banner.reconnected {
+          background: #d1fae5;
+          color: #065f46;
+        }
+
+        .messages-container {
+          flex: 1;
+          overflow-y: auto;
+          padding: 20px;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          background: #f8fafc;
+        }
+
+        .message {
+          max-width: 75%;
+          padding: 12px 16px;
+          border-radius: 18px;
+          font-size: 15px;
+          line-height: 1.5;
+          animation: slideIn 0.3s ease;
+          word-wrap: break-word;
+        }
+
+        @keyframes slideIn {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .message.visitor {
+          background: linear-gradient(135deg, #00796B 0%, #00897B 100%);
+          color: white;
+          align-self: flex-end;
+          border-bottom-right-radius: 4px;
+        }
+
+        .message.admin {
+          background: white;
+          color: #333;
+          align-self: flex-start;
+          border-bottom-left-radius: 4px;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .message.pending {
+          opacity: 0.6;
+        }
+
+        .message-time {
+          font-size: 11px;
+          opacity: 0.7;
+          margin-top: 5px;
+        }
+
+        .system-message {
+          text-align: center;
+          color: #888;
+          font-size: 13px;
+          padding: 10px;
+        }
+
+        .input-area {
+          padding: 15px;
+          background: white;
+          border-top: 1px solid #e5e7eb;
+          display: flex;
+          gap: 12px;
+          align-items: center;
+          flex-shrink: 0;
+        }
+
+        .input-area input {
+          flex: 1;
+          padding: 14px 20px;
+          border: 2px solid #e5e7eb;
+          border-radius: 25px;
+          font-size: 16px;
+          transition: all 0.3s;
+          font-family: inherit;
+        }
+
+        .input-area input:focus {
+          outline: none;
+          border-color: #00796B;
+        }
+
+        .input-area input:disabled {
+          background: #f3f4f6;
+          color: #9ca3af;
+        }
+
+        .input-area button {
+          width: 50px;
+          height: 50px;
+          background: linear-gradient(135deg, #00796B 0%, #00897B 100%);
+          border: none;
+          border-radius: 50%;
+          color: white;
+          font-size: 20px;
+          cursor: pointer;
+          transition: all 0.3s;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+
+        .input-area button:hover {
+          transform: scale(1.05);
+        }
+
+        .input-area button:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+          transform: none;
+        }
+
+        .session-info {
+          text-align: center;
+          font-size: 11px;
+          color: #999;
+          padding: 8px;
+          background: white;
+          border-top: 1px solid #f0f0f0;
+          flex-shrink: 0;
+        }
+
+        .modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0, 0, 0, 0.5);
+          display: none;
+          align-items: center;
+          justify-content: center;
+          z-index: 1000;
+          padding: 20px;
+        }
+
+        .modal {
+          background: white;
+          border-radius: 16px;
+          padding: 25px;
+          max-width: 320px;
+          width: 100%;
+          text-align: center;
+        }
+
+        .modal h4 {
+          font-size: 18px;
+          color: #333;
+          margin-bottom: 10px;
+        }
+
+        .modal p {
+          color: #666;
+          font-size: 14px;
+          margin-bottom: 20px;
+        }
+
+        .modal-buttons {
+          display: flex;
+          gap: 10px;
+        }
+
+        .modal-buttons button {
+          flex: 1;
+          padding: 12px;
+          border-radius: 10px;
+          font-size: 15px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.3s;
+          font-family: inherit;
+        }
+
+        .modal-buttons .cancel {
+          background: #f3f4f6;
+          color: #333;
+          border: none;
+        }
+
+        .modal-buttons .confirm {
+          background: #dc2626;
+          color: white;
+          border: none;
+        }
+
+        .modal-buttons button:hover {
+          transform: translateY(-2px);
+        }
+
+        @media (max-width: 600px) {
+          .chat-header {
+            padding: 12px 15px;
+          }
+
+          .back-button {
+            width: 32px;
+            height: 32px;
+            font-size: 16px;
+          }
+
+          .avatar {
+            width: 40px;
+            height: 40px;
+            font-size: 20px;
+          }
+
+          .header-info h2 {
+            font-size: 16px;
+          }
+
+          .messages-container {
+            padding: 15px;
+          }
+
+          .message {
+            max-width: 85%;
+          }
+
+          .input-area {
+            padding: 12px;
+          }
+
+          .input-area input {
+            padding: 12px 18px;
+          }
+
+          .input-area button {
+            width: 46px;
+            height: 46px;
+          }
+        }
+
+        @supports (padding: env(safe-area-inset-bottom)) {
+          .input-area {
+            padding-bottom: calc(15px + env(safe-area-inset-bottom));
+          }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="chat-container">
+        <div class="chat-header">
+          <a href="/dashboard" class="back-button" id="backButton" onclick="event.preventDefault(); showExitModal();">←</a>
+          <div class="avatar">💬</div>
+          <div class="header-info">
+            <h2>Support Chat</h2>
+            <div class="status">
+              <span class="status-dot" id="statusDot"></span>
+              <span id="statusText">Connecting...</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="connection-banner" id="connectionBanner"></div>
+
+        <div class="messages-container" id="messagesContainer">
+          <div class="system-message">Chat started. We typically reply instantly! 🚀</div>
+        </div>
+
+        <div class="input-area" id="inputArea">
+          <input type="text" id="messageInput" placeholder="Type a message..." autocomplete="off">
+          <button onclick="sendMessage()" id="sendBtn">➤</button>
+        </div>
+
+        <div class="session-info" id="sessionInfo"></div>
+      </div>
+
+      <div class="modal-overlay" id="exitModal">
+        <div class="modal">
+          <h4>Leave Chat?</h4>
+          <p>Are you sure you want to end this conversation?</p>
+          <div class="modal-buttons">
+            <button class="cancel" onclick="hideExitModal()">Cancel</button>
+            <button class="confirm" onclick="endChat()">Leave Chat</button>
+          </div>
+        </div>
+      </div>
+
+      <script src="/socket.io/socket.io.js"></script>
+      <script>
+        const customerName = "${customer.name}";
+        const customerId = "${customer._id}";
+        const customerEmail = "${customer.email}";
+
+        let socket;
+        let visitorId = localStorage.getItem("chat_visitorId");
+        let isConnected = false;
+        let pendingMessages = [];
+        let reconnectAttempts = 0;
+
+        function initSocket() {
+          socket = io({
+            reconnection: true,
+            reconnectionAttempts: Infinity,
+            reconnectionDelay: 1000,
+            reconnectionDelayMax: 5000,
+          });
+
+          socket.on("connect", () => {
+            console.log("Connected to server");
+            isConnected = true;
+            reconnectAttempts = 0;
+            updateStatus("online");
+
+            socket.emit("start_chat", {
+              visitorId: visitorId,
+              name: customerName,
+              customerId: customerId,
+              customerEmail: customerEmail,
+            });
+
+            while (pendingMessages.length > 0) {
+              const msg = pendingMessages.shift();
+              socket.emit("send_message", msg);
+            }
+          });
+
+          socket.on("disconnect", () => {
+            console.log("Disconnected from server");
+            isConnected = false;
+            updateStatus("reconnecting");
+            showBanner("Connection lost. Reconnecting...", "offline");
+          });
+
+          socket.on("reconnect_attempt", (attempt) => {
+            reconnectAttempts = attempt;
+            updateStatus("reconnecting");
+          });
+
+          socket.on("reconnect", () => {
+            showBanner("Reconnected!", "reconnected");
+            setTimeout(() => hideBanner(), 3000);
+          });
+
+          socket.on("chat_started", (data) => {
+            visitorId = data.visitorId;
+            localStorage.setItem("chat_visitorId", visitorId);
+            document.getElementById("sessionInfo").textContent = "Session: " + visitorId.slice(0, 8);
+
+            if (data.reconnected) {
+              addSystemMessage("Reconnected to chat");
+            }
+          });
+
+          socket.on("message_sent", (data) => {
+            addMessage(data.message, "visitor", data.timestamp);
+            removePendingState(data.message);
+          });
+
+          socket.on("receive_message", (data) => {
+            addMessage(data.message, "admin", data.timestamp);
+            playSound();
+            if (navigator.vibrate) {
+              navigator.vibrate(200);
+            }
+          });
+
+          socket.on("system_message", (data) => {
+            addSystemMessage(data.message);
+          });
+
+          socket.on("chat_ended", (data) => {
+            visitorId = null;
+            localStorage.removeItem("chat_visitorId");
+            addSystemMessage(data.message);
+            document.getElementById("messageInput").disabled = true;
+            document.getElementById("sendBtn").disabled = true;
+            setTimeout(() => {
+              window.location.href = "/dashboard";
+            }, 2000);
+          });
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+          initSocket();
+        });
+
+        document.addEventListener("visibilitychange", () => {
+          if (document.visibilityState === "visible") {
+            if (!isConnected && socket) {
+              socket.connect();
+            }
+          }
+        });
+
+        function updateStatus(status) {
+          const dot = document.getElementById("statusDot");
+          const text = document.getElementById("statusText");
+          const input = document.getElementById("messageInput");
+          const sendBtn = document.getElementById("sendBtn");
+
+          dot.classList.remove("offline", "reconnecting");
+
+          switch (status) {
+            case "online":
+              text.textContent = "Online";
+              if (input) input.disabled = false;
+              if (sendBtn) sendBtn.disabled = false;
+              break;
+            case "offline":
+              dot.classList.add("offline");
+              text.textContent = "Offline";
+              if (input) input.disabled = true;
+              if (sendBtn) sendBtn.disabled = true;
+              break;
+            case "reconnecting":
+              dot.classList.add("reconnecting");
+              text.textContent = "Reconnecting...";
+              if (input) input.disabled = false;
+              if (sendBtn) sendBtn.disabled = false;
+              break;
+          }
+        }
+
+        function showBanner(message, type) {
+          const banner = document.getElementById("connectionBanner");
+          banner.textContent = message;
+          banner.className = "connection-banner " + type;
+          banner.style.display = "block";
+        }
+
+        function hideBanner() {
+          document.getElementById("connectionBanner").style.display = "none";
+        }
+
+        function sendMessage() {
+          const input = document.getElementById("messageInput");
+          const message = input.value.trim();
+
+          if (!message) return;
+
+          const messageData = {
+            visitorId: visitorId,
+            message: message,
+          };
+
+          if (isConnected) {
+            socket.emit("send_message", messageData);
+          } else {
+            pendingMessages.push(messageData);
+            addMessage(message, "visitor pending", new Date());
+            addSystemMessage("Message will be sent when connection is restored");
+          }
+
+          input.value = "";
+        }
+
+        document.getElementById("messageInput").addEventListener("keypress", (e) => {
+          if (e.key === "Enter") sendMessage();
+        });
+
+        function removePendingState(messageText) {
+          const messages = document.querySelectorAll(".message.pending");
+          messages.forEach((msg) => {
+            if (msg.textContent.includes(messageText)) {
+              msg.classList.remove("pending");
+            }
+          });
+        }
+
+        function addMessage(text, sender, timestamp) {
+          const container = document.getElementById("messagesContainer");
+          const time = new Date(timestamp).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+
+          const div = document.createElement("div");
+          div.className = "message " + sender;
+          div.innerHTML = escapeHtml(text) + '<div class="message-time">' + time + '</div>';
+
+          container.appendChild(div);
+          container.scrollTop = container.scrollHeight;
+        }
+
+        function addSystemMessage(text) {
+          const container = document.getElementById("messagesContainer");
+          const div = document.createElement("div");
+          div.className = "system-message";
+          div.textContent = text;
+          container.appendChild(div);
+          container.scrollTop = container.scrollHeight;
+        }
+
+        function showExitModal() {
+          document.getElementById("exitModal").style.display = "flex";
+        }
+
+        function hideExitModal() {
+          document.getElementById("exitModal").style.display = "none";
+        }
+
+        function endChat() {
+          hideExitModal();
+
+          socket.emit("end_chat", {
+            visitorId: visitorId,
+          });
+
+          visitorId = null;
+          localStorage.removeItem("chat_visitorId");
+          window.location.href = "/dashboard";
+        }
+
+        function escapeHtml(text) {
+          const div = document.createElement("div");
+          div.textContent = text;
+          return div.innerHTML;
+        }
+
+        function playSound() {
+          try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.frequency.value = 800;
+            gain.gain.value = 0.1;
+            osc.start();
+            setTimeout(() => osc.stop(), 150);
+          } catch (e) {}
+        }
+      </script>
+    </body>
+    </html>
+  `;
+
+  res.send(html);
+});
+
+// ==========================================
 // ROUTES - SETTINGS
 // ==========================================
 
@@ -5622,7 +6761,7 @@ app.use((err, req, res, next) => {
 
 async function start() {
   await connectDB();
-  app.listen(PORT, () => { console.log(`🏦 Banking Portal running on port ${PORT}`); });
+  server.listen(PORT, () => { console.log(`🏦 Banking Portal running on port ${PORT}`); });
 }
 
 start();

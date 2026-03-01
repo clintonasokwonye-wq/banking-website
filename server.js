@@ -23,6 +23,19 @@ const io = new Server(server, {
 });
 const PORT = 3000;
 
+// ==========================================
+// HEALTH CHECK ROUTE (NO AUTH REQUIRED)
+// ==========================================
+// This route is placed BEFORE Basic Auth so UptimeRobot can ping it
+
+app.get("/health", (req, res) => {
+  res.status(200).send("OK");
+});
+
+app.get("/ping", (req, res) => {
+  res.status(200).send("pong");
+});
+
 // ✅ INSERT BASIC AUTH RIGHT HERE
 
 const demoPassword = process.env.DEMO_PASSWORD;
